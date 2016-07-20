@@ -6,7 +6,7 @@
 // Revision History:
 //   Initial Revision - 12/10/15
 //
-// Copyright (c) 2005-2015, Steven Ball
+// Copyright (c) 2005-2016, Steven Ball
 // ******************************************************************************
 
 #include "../glew/include/GL/glew.h"
@@ -14,7 +14,7 @@
 #include "Renderer.h"
 
 // GL ERROR CHECK
-int CheckGLErrors(char *file, int line)
+int CheckGLErrors(const char *file, int line)
 {
 	GLenum glErr;
 	int    retCode = 0;
@@ -45,7 +45,7 @@ Renderer::Renderer(int width, int height, int depthBits, int stencilBits)
 
 	// Default clipping planes
 	m_clipNear = 0.1f;
-	m_clipFar = 1000.0f;
+	m_clipFar = 10000.0f;
 
 	// Is depth buffer needed?
 	if (depthBits > 0)
@@ -65,6 +65,9 @@ Renderer::Renderer(int width, int height, int depthBits, int stencilBits)
 		m_stencil = true;
 	}
 
+	// Set clear colour to black
+	SetClearColour(0.0f, 0.0f, 0.0f, 1.0f);
+
 	// Enable smooth shading
 	glShadeModel(GL_SMOOTH);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -78,6 +81,10 @@ Renderer::Renderer(int width, int height, int depthBits, int stencilBits)
 	m_cullMode = CM_NOCULL;
 	m_primativeMode = PM_TRIANGLES;
 	m_activeViewport = -1;
+
+	// Rendered information
+	m_numRenderedVertices = 0;
+	m_numRenderedFaces = 0;
 
 	InitOpenGLExtensions();
 }
@@ -484,6 +491,9 @@ bool Renderer::BeginScene(bool pixel, bool depth, bool stencil)
 {
 	ClearScene(pixel, depth, stencil);
 
+	// Reset the renderer stat counters
+	ResetRenderedStats();
+
 	// Reset the projection and modelview matrices to be identity
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -507,6 +517,16 @@ void Renderer::EndScene()
 void Renderer::SetColourMask(bool red, bool green, bool blue, bool alpha)
 {
 	glColorMask(red, green, blue, alpha);
+}
+
+void Renderer::SetClearColour(float red, float green, float blue, float alpha)
+{
+	glClearColor(red, green, blue, alpha);
+}
+
+void Renderer::SetClearColour(Colour col)
+{
+	glClearColor(col.GetRed(), col.GetGreen(), col.GetBlue(), col.GetAlpha());
 }
 
 // Push / Pop matrix stack
@@ -712,6 +732,19 @@ void Renderer::GetScreenCoordinatesFromWorldPosition(vec3 pos, int *x, int *y)
 	(*y) = (int)winy;
 }
 
+// Clip planes
+void Renderer::EnableClipPlane(unsigned int index, double eq1, double eq2, double eq3, double eq4)
+{
+	double plane[] = { eq1, eq2, eq3, eq4 };
+	glClipPlane(GL_CLIP_PLANE0 + index, plane);
+	glEnable(GL_CLIP_PLANE0 + index);
+}
+
+void Renderer::DisableClipPlane(unsigned int index)
+{
+	glDisable(GL_CLIP_PLANE0);
+}
+
 // Camera functionality
 void Renderer::SetLookAtCamera(vec3 pos, vec3 target, vec3 up)
 {
@@ -763,6 +796,17 @@ void Renderer::EnableMultiSampling()
 void Renderer::DisableMultiSampling()
 {
 	glDisable(GL_MULTISAMPLE_ARB);
+}
+
+// Vector normalize
+void Renderer::EnableVectorNormalize()
+{
+	glEnable(GL_NORMALIZE);
+}
+
+void Renderer::DisableVectorNormalize()
+{
+	glDisable(GL_NORMALIZE);
 }
 
 // Depth testing
@@ -820,6 +864,17 @@ void Renderer::EnableDepthWrite()
 void Renderer::DisableDepthWrite()
 {
 	glDepthMask(GL_FALSE);
+}
+
+// Colour material
+void Renderer::EnableColourMaterial()
+{
+	glEnable(GL_COLOR_MATERIAL);
+}
+
+void Renderer::DisableColourMaterial()
+{
+	glDisable(GL_COLOR_MATERIAL);
 }
 
 // Immediate mode
@@ -988,7 +1043,7 @@ void Renderer::DrawSphericalSector(float lRadius, float angle, int lSectors, int
 }
 
 // Text rendering
-bool Renderer::CreateFreeTypeFont(char *fontName, int fontSize, unsigned int *pID, bool noAutoHint)
+bool Renderer::CreateFreeTypeFont(const char *fontName, int fontSize, unsigned int *pID, bool noAutoHint)
 {
 	FreeTypeFont* font = new FreeTypeFont();
 
@@ -1002,7 +1057,7 @@ bool Renderer::CreateFreeTypeFont(char *fontName, int fontSize, unsigned int *pI
 	return true;
 }
 
-bool Renderer::RenderFreeTypeText(unsigned int fontID, float x, float y, float z, Colour colour, float scale, char *inText, ...)
+bool Renderer::RenderFreeTypeText(unsigned int fontID, float x, float y, float z, Colour colour, float scale, const char *inText, ...)
 {
 	char		outText[8192];
 	va_list		ap;  // Pointer to list of arguments
@@ -1033,7 +1088,7 @@ bool Renderer::RenderFreeTypeText(unsigned int fontID, float x, float y, float z
 	return true;
 }
 
-int Renderer::GetFreeTypeTextWidth(unsigned int fontID, char *inText, ...)
+int Renderer::GetFreeTypeTextWidth(unsigned int fontID, const char *inText, ...)
 {
 	char outText[8192];
 	va_list ap;
@@ -1049,7 +1104,7 @@ int Renderer::GetFreeTypeTextWidth(unsigned int fontID, char *inText, ...)
 	return m_freetypeFonts[fontID]->GetTextWidth(outText);
 }
 
-int Renderer::GetFreeTypeTextHeight(unsigned int fontID, char *inText, ...)
+int Renderer::GetFreeTypeTextHeight(unsigned int fontID, const char *inText, ...)
 {
 	return m_freetypeFonts[fontID]->GetCharHeight('a');
 }
@@ -1587,6 +1642,27 @@ bool Renderer::RenderStaticBuffer(unsigned int id)
 	bool rendered = false;
 	if (pVertexArray != NULL)
 	{
+		m_numRenderedVertices += pVertexArray->nVerts;
+		switch (m_primativeMode)
+		{
+		case GL_POINTS:
+		case GL_LINES:
+			m_numRenderedFaces += 0;
+			break;
+		case GL_TRIANGLES:
+			m_numRenderedFaces += (pVertexArray->nIndices / 3);
+			break;
+		case GL_TRIANGLE_STRIP:
+			m_numRenderedFaces += (pVertexArray->nIndices - 2);
+			break;
+		case GL_TRIANGLE_FAN:
+			m_numRenderedFaces += (pVertexArray->nIndices - 2);
+			break;
+		case GL_QUADS:
+			m_numRenderedFaces += (pVertexArray->nIndices / 4);
+			break;
+		}
+
 		if ((pVertexArray->type != VT_POSITION_DIFFUSE_ALPHA) && (pVertexArray->type != VT_POSITION_DIFFUSE))
 		{
 			if (pVertexArray->materialID != -1)
@@ -1677,6 +1753,27 @@ bool Renderer::RenderStaticBuffer_NoColour(unsigned int id)
 	bool rendered = false;
 	if (pVertexArray != NULL)
 	{
+		m_numRenderedVertices += pVertexArray->nVerts;
+		switch (m_primativeMode)
+		{
+		case GL_POINTS:
+		case GL_LINES:
+			m_numRenderedFaces += 0;
+			break;
+		case GL_TRIANGLES:
+			m_numRenderedFaces += (pVertexArray->nIndices / 3);
+			break;
+		case GL_TRIANGLE_STRIP:
+			m_numRenderedFaces += (pVertexArray->nIndices - 2);
+			break;
+		case GL_TRIANGLE_FAN:
+			m_numRenderedFaces += (pVertexArray->nIndices - 2);
+			break;
+		case GL_QUADS:
+			m_numRenderedFaces += (pVertexArray->nIndices / 4);
+			break;
+		}
+
 		if ((pVertexArray->type != VT_POSITION_DIFFUSE_ALPHA) && (pVertexArray->type != VT_POSITION_DIFFUSE))
 		{
 			if (pVertexArray->materialID != -1)
@@ -1767,6 +1864,27 @@ bool Renderer::RenderFromArray(VertexType type, unsigned int materialID, unsigne
 		{
 			BindTexture(textureID);
 		}
+	}
+
+	m_numRenderedVertices += nVerts;
+	switch (m_primativeMode)
+	{
+	case GL_POINTS:
+	case GL_LINES:
+		m_numRenderedFaces += 0;
+		break;
+	case GL_TRIANGLES:
+		m_numRenderedFaces += (nIndices / 3);
+		break;
+	case GL_TRIANGLE_STRIP:
+		m_numRenderedFaces += (nIndices - 2);
+		break;
+	case GL_TRIANGLE_FAN:
+		m_numRenderedFaces += (nIndices - 2);
+		break;
+	case GL_QUADS:
+		m_numRenderedFaces += (nIndices / 4);
+		break;
 	}
 
 	// Calculate the stride
@@ -2009,6 +2127,35 @@ void Renderer::ModifyMeshColour(float r, float g, float b, OpenGLTriangleMesh* p
 	m_vertexArraysMutex.unlock();
 }
 
+void Renderer::ConvertMeshColour(float r, float g, float b, float matchR, float matchG, float matchB, OpenGLTriangleMesh* pMesh)
+{
+	m_vertexArraysMutex.lock();
+	VertexArray* pArray = m_vertexArrays[pMesh->m_staticMeshId];
+
+	GLsizei totalStride = GetStride(pArray->type) / 4;
+	int rIndex = totalStride - 4;
+	int gIndex = totalStride - 3;
+	int bIndex = totalStride - 2;
+
+	for (int i = 0; i < pArray->nVerts; i++)
+	{
+		float diffR = fabs(pArray->pVA[rIndex] - matchR);
+		float diffG = fabs(pArray->pVA[gIndex] - matchG);
+		float diffB = fabs(pArray->pVA[bIndex] - matchB);
+		if (diffR < 0.005f && diffG < 0.005f && diffB < 0.005f)
+		{
+			pArray->pVA[rIndex] = r;
+			pArray->pVA[gIndex] = g;
+			pArray->pVA[bIndex] = b;
+		}
+
+		rIndex += totalStride;
+		gIndex += totalStride;
+		bIndex += totalStride;
+	}
+	m_vertexArraysMutex.unlock();
+}
+
 void Renderer::FinishMesh(unsigned int textureID, unsigned int materialID, OpenGLTriangleMesh* pMesh)
 {
 	unsigned int numTriangles = (int)pMesh->m_triangles.size();
@@ -2138,85 +2285,8 @@ void Renderer::EndMeshRender()
 bool Renderer::MeshStaticBufferRender(OpenGLTriangleMesh* pMesh)
 {
 	SetPrimativeMode(PM_TRIANGLES);
-	//SetRenderMode(RM_SOLID);
 
-	m_vertexArraysMutex.lock();
-
-	if (pMesh->m_staticMeshId >= m_vertexArrays.size())
-	{
-		m_vertexArraysMutex.unlock();
-		return false;  // We have supplied an invalid id		
-	}
-
-	VertexArray *pVertexArray = m_vertexArrays[pMesh->m_staticMeshId];
-
-	bool rendered = false;
-	if (pVertexArray != NULL)
-	{
-		if (pVertexArray->nVerts != 0)
-		{
-			if ((pVertexArray->type != VT_POSITION_DIFFUSE_ALPHA) && (pVertexArray->type != VT_POSITION_DIFFUSE))
-			{
-				if (pVertexArray->materialID != -1)
-				{
-					m_materials[pVertexArray->materialID]->Apply();
-				}
-			}
-
-			if (pVertexArray->type == VT_POSITION_NORMAL_UV || pVertexArray->type == VT_POSITION_NORMAL_UV_COLOUR)
-			{
-				if (pVertexArray->textureID != -1)
-				{
-					BindTexture(pVertexArray->textureID);
-				}
-			}
-
-			// Calculate the stride
-			GLsizei totalStride = GetStride(pVertexArray->type);
-
-			glVertexPointer(3, GL_FLOAT, totalStride, pVertexArray->pVA);
-
-			if (pVertexArray->type == VT_POSITION_NORMAL || pVertexArray->type == VT_POSITION_NORMAL_UV || pVertexArray->type == VT_POSITION_NORMAL_UV_COLOUR || pVertexArray->type == VT_POSITION_NORMAL_COLOUR)
-			{
-				glNormalPointer(GL_FLOAT, totalStride, &pVertexArray->pVA[3]);
-			}
-
-			if (pVertexArray->type == VT_POSITION_NORMAL_UV || pVertexArray->type == VT_POSITION_NORMAL_UV_COLOUR)
-			{
-				glTexCoordPointer(2, GL_FLOAT, 0, pVertexArray->pTextureCoordinates);
-			}
-
-			if (pVertexArray->type == VT_POSITION_DIFFUSE_ALPHA)
-			{
-				glColorPointer(4, GL_FLOAT, totalStride, &pVertexArray->pVA[3]);
-			}
-
-			if (pVertexArray->type == VT_POSITION_DIFFUSE)
-			{
-				glColorPointer(3, GL_FLOAT, totalStride, &pVertexArray->pVA[3]);
-			}
-
-			if (pVertexArray->type == VT_POSITION_NORMAL_UV_COLOUR || pVertexArray->type == VT_POSITION_NORMAL_COLOUR)
-			{
-				glColorPointer(4, GL_FLOAT, totalStride, &pVertexArray->pVA[6]);
-			}
-
-			if (pVertexArray->nIndices != 0)
-			{
-				glDrawElements(m_primativeMode, pVertexArray->nIndices, GL_UNSIGNED_INT, pVertexArray->pIndices);
-			}
-			else
-			{
-				glDrawArrays(m_primativeMode, 0, pVertexArray->nVerts);
-			}
-
-			rendered = true;
-		}
-	}
-
-	m_vertexArraysMutex.unlock();
-
-	return rendered;
+	return RenderStaticBuffer(pMesh->m_staticMeshId);
 }
 
 // Name rendering and name picking
@@ -2525,8 +2595,25 @@ unsigned int Renderer::GetDepthTextureFromFrameBuffer(unsigned int frameBufferId
 	return m_vFrameBuffers[frameBufferId]->m_depthTexture;
 }
 
+// Rendered information
+void Renderer::ResetRenderedStats()
+{
+	m_numRenderedVertices = 0;
+	m_numRenderedFaces = 0;
+}
+
+int Renderer::GetNumRenderedVertices()
+{
+	return m_numRenderedVertices;
+}
+
+int Renderer::GetNumRenderedFaces()
+{
+	return m_numRenderedFaces;
+}
+
 // Shaders
-bool Renderer::LoadGLSLShader(char* vertexFile, char* fragmentFile, unsigned int *pID)
+bool Renderer::LoadGLSLShader(const char* vertexFile, const char* fragmentFile, unsigned int *pID)
 {
 	glShader* lpShader = NULL;
 

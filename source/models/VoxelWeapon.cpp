@@ -1388,7 +1388,7 @@ void VoxelWeapon::Update(float dt)
 }
 
 // Rendering
-void VoxelWeapon::Render(bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour)
+void VoxelWeapon::Render(bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour)
 {
 	m_pRenderer->PushMatrix();
 		if(m_pParentCharacter != NULL)
@@ -1494,10 +1494,10 @@ void VoxelWeapon::Render(bool renderOutline, bool refelction, bool silhouette, C
 
 				//m_pRenderer->ScaleWorldMatrix(1.0f, 1.0f, 1.0f);
 
-				m_pAnimatedSections[i].m_pVoxelObject->Render(renderOutline, refelction, silhouette, OutlineColour);
+				m_pAnimatedSections[i].m_pVoxelObject->Render(renderOutline, reflection, silhouette, OutlineColour);
 
 				// Store the animated section position, since light might be attached to it
-				if(refelction == false)
+				if(reflection == false)
 				{
 					Matrix4x4 pMat = m_pAnimatedSections[i].m_pVoxelObject->GetModelMatrix(0);
 					m_pAnimatedSections[i].m_animatedSectionPosition = pMat.GetTranslationVector();
@@ -1514,7 +1514,8 @@ void VoxelWeapon::RenderPaperdoll()
 		{
 			if(m_boneIndex != -1)
 			{
-				Matrix4x4 boneMatrix = m_pParentCharacter->GetBoneMatrixPaperdoll(m_boneIndex);
+				bool leftSide = (m_boneIndex == m_pParentCharacter->GetLeftHandBoneIndex());
+				Matrix4x4 boneMatrix = m_pParentCharacter->GetBoneMatrixPaperdoll(m_boneIndex, leftSide);
 
 				// Breathing animation
 				float offsetAmount = m_pParentCharacter->GetBreathingAnimationOffsetForBone(m_boneIndex);

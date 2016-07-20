@@ -76,6 +76,12 @@ public:
 	// Position
 	vec3 m_position;
 
+	// Position with no world offset
+	vec3 m_position_NoWorldOffset;
+
+	// Flag to indicate if we should render particles created from this particle effect in the no world offset viewports (characterGUI)
+	bool m_renderNoWoldOffsetViewport;
+
 	// Life
 	bool m_endless;
 	float m_lifeTime;

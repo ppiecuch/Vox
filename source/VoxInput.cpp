@@ -191,26 +191,35 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 		}
 		case GLFW_KEY_O:
 		{
-			m_pDebugCameraOptionBox->SetToggled(true);
-			CameraModeChanged();
+			if (STEAM_BUILD == false)
+			{
+				m_pDebugCameraOptionBox->SetToggled(true);
+				CameraModeChanged();
+			}
 			break;
 		}
 		case GLFW_KEY_L:
 		{
-			SetPaused(!IsPaused());
+			if (STEAM_BUILD == false)
+			{
+				SetPaused(!IsPaused());
+			}
 			break;
 		}
 		case GLFW_KEY_P:
 		{
-			if (m_pGUI->IsKeyboardInteractingWithGUIComponent() == false)
+			if (STEAM_BUILD == false)
 			{
-				if (m_pMainWindow->IsVisible() == false)
+				if (m_pGUI->IsKeyboardInteractingWithGUIComponent() == false)
 				{
-					ShowGUI();
-				}
-				else
-				{
-					HideGUI();
+					if (m_pMainWindow->IsVisible() == false)
+					{
+						ShowGUI();
+					}
+					else
+					{
+						HideGUI();
+					}
 				}
 			}
 			break;
@@ -229,7 +238,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 						{
-							TurnCursorOff();
+							TurnCursorOff(false);
 						}
 					}
 					else if (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_None)
@@ -238,7 +247,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						m_pPlayer->StopMoving();
 
-						TurnCursorOn(true);
+						TurnCursorOn(false, false);
 					}
 				}
 			}
@@ -256,7 +265,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 						{
-							TurnCursorOff();
+							TurnCursorOff(false);
 						}
 					}
 					else if (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_None)
@@ -265,7 +274,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						m_pPlayer->StopMoving();
 
-						TurnCursorOn(true);
+						TurnCursorOn(false, false);
 					}
 				}
 			}
@@ -283,7 +292,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 						{
-							TurnCursorOff();
+							TurnCursorOff(false);
 						}
 					}
 					else if (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_None)
@@ -292,7 +301,7 @@ void VoxGame::KeyReleased(int key, int scancode, int mods)
 
 						m_pPlayer->StopMoving();
 
-						TurnCursorOn(true);
+						TurnCursorOn(false, false);
 					}
 				}
 			}
@@ -360,12 +369,14 @@ void VoxGame::CharacterEntered(int keyCode)
 
 void VoxGame::MouseLeftPressed()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	m_bPressedCursorDown = true;
+
+	if (IsCursorOn())
 	{
 		m_pGUI->MousePressed(MOUSE_BUTTON1);
 	}
 
-	if (m_pVoxWindow->IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
+	if (IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
 	{
 		m_currentX = m_pVoxWindow->GetCursorX();
 		m_currentY = m_pVoxWindow->GetCursorY();
@@ -375,9 +386,9 @@ void VoxGame::MouseLeftPressed()
 		if (m_gameMode == GameMode_Debug || m_cameraMode == CameraMode_Debug)
 		{
 			// Turn cursor off
-			if (m_pVoxWindow->IsCursorOn() == true)
+			if (IsCursorOn() == true)
 			{
-				TurnCursorOff();
+				TurnCursorOff(false);
 			}
 
 			m_bCameraRotate = true;
@@ -400,11 +411,19 @@ void VoxGame::MouseLeftPressed()
 			m_pNPCManager->UpdateNamePickingSelection(-1);
 		}
 	}
+
+	// For front-end credits screen advancement
+	if (m_gameMode == GameMode_FrontEnd && m_pFrontendManager->GetFrontendScreen() == FrontendScreen_Credits)
+	{
+		m_pFrontendManager->GotoNextCreditScreen();
+	}
 }
 
 void VoxGame::MouseLeftReleased()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	m_bPressedCursorDown = false;
+
+	if (IsCursorOn())
 	{
 		m_pGUI->MouseReleased(MOUSE_BUTTON1);
 	}
@@ -414,9 +433,9 @@ void VoxGame::MouseLeftReleased()
 		if (!m_pGUI->IsMouseInteractingWithGUIComponent(false))
 		{
 			// Turn cursor on
-			if (m_pVoxWindow->IsCursorOn() == false)
+			if (IsCursorOn() == false)
 			{
-				TurnCursorOn(true);
+				TurnCursorOn(true, false);
 			}
 		}
 
@@ -432,7 +451,9 @@ void VoxGame::MouseLeftReleased()
 
 void VoxGame::MouseRightPressed()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	m_bPressedCursorDown = true;
+
+	if (IsCursorOn())
 	{
 		m_pGUI->MousePressed(MOUSE_BUTTON2);
 	}
@@ -442,7 +463,7 @@ void VoxGame::MouseRightPressed()
 		SetEnemyTarget();
 	}
 
-	if (m_pVoxWindow->IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
+	if (IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
 	{
 		m_currentX = m_pVoxWindow->GetCursorX();
 		m_currentY = m_pVoxWindow->GetCursorY();
@@ -453,7 +474,9 @@ void VoxGame::MouseRightPressed()
 
 void VoxGame::MouseRightReleased()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	m_bPressedCursorDown = false;
+
+	if (IsCursorOn())
 	{
 		m_pGUI->MouseReleased(MOUSE_BUTTON2);
 	}
@@ -463,7 +486,7 @@ void VoxGame::MouseRightReleased()
 
 void VoxGame::MouseMiddlePressed()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	if (IsCursorOn())
 	{
 		m_pGUI->MousePressed(MOUSE_BUTTON3);
 	}
@@ -471,7 +494,7 @@ void VoxGame::MouseMiddlePressed()
 
 void VoxGame::MouseMiddleReleased()
 {
-	if (m_pVoxWindow->IsCursorOn())
+	if (IsCursorOn())
 	{
 		m_pGUI->MouseReleased(MOUSE_BUTTON3);
 	}
@@ -487,7 +510,7 @@ void VoxGame::MouseScroll(double x, double y)
 		{
 			if (m_pPlayer->GetTargetEnemy() == NULL) // Don't allow mouse zooming when we are an enemy target.
 			{
-				if (m_pVoxWindow->IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
+				if (IsCursorOn() == false || !m_pGUI->IsMouseInteractingWithGUIComponent(false))
 				{
 					if (m_cameraMode != CameraMode_FirstPerson)
 					{
@@ -576,6 +599,10 @@ void VoxGame::MouseCameraRotate()
 		changeY = -changeY;
 	}
 
+	// Scale based on mouse sensitivity options
+	changeX *= m_pVoxSettings->m_mouseSensitivity * 0.02f;
+	changeY *= m_pVoxSettings->m_mouseSensitivity * 0.02f;
+
 	// Limit the rotation, so we can't go 'over' or 'under' the player with out rotations
 	vec3 cameraFacing = m_pGameCamera->GetFacing();
 	float dotResult = acos(dot(cameraFacing, vec3(0.0f, 1.0f, 0.0f)));
@@ -659,6 +686,10 @@ void VoxGame::JoystickCameraRotate(float dt)
 	{
 		changeY = -changeY;
 	}
+
+	// Scale based on gamepad sensitivity options
+	changeX *= m_pVoxSettings->m_gamepadSensitivity * 0.02f;
+	changeY *= m_pVoxSettings->m_gamepadSensitivity * 0.02f;
 
 	// Limit the rotation, so we can't go 'over' or 'under' the player with out rotations
 	vec3 cameraFacing = m_pGameCamera->GetFacing();

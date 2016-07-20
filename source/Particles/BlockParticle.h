@@ -58,6 +58,9 @@ public:
 	// Position
 	vec3 m_position;
 
+	// Position with no world offset
+	vec3 m_position_NoWorldOffset;
+
 	// Velocity
 	vec3 m_velocity;
 	vec3 m_startVelocityVariance;
@@ -77,6 +80,9 @@ public:
 
 	// World matrix
 	Matrix4x4 m_worldMatrix;
+
+	// World matrix with no positional offset, used for viewport rendering without world movements (i.e. characterGUI)
+	Matrix4x4 m_worldMatrix_NoPositionOffset;
 
 	// Particle colour
 	float m_currentRed;

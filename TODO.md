@@ -86,13 +86,13 @@
 - [x] Cinematic letterbox mode.
 - [x] Add console and logger to the in-game gui for output and logging information.
   - [x] Log when loading/saving model files.
-  - [ ]  Log to output file and log files as well as console GUI.
-  - [ ]  Remove old log messages, only allow a certain nunber of log messages to be shown.
-  - [ ]  Add debug log information for model loading and rendering - num verts, tris, faces, etc.
-  - [ ]  Log on errors.
-  - [ ]  Allow input commands.
-  - [ ]  Clear log text functionality
-  - [ ]  Rendering of many log messages is slow, output to file?
+  - [ ] Log to output file and log files as well as console GUI.
+  - [ ] Remove old log messages, only allow a certain nunber of log messages to be shown.
+  - [ ] Add debug log information for model loading and rendering - num verts, tris, faces, etc.
+  - [ ] Log on errors.
+  - [ ] Allow input commands.
+  - [ ] Clear log text functionality
+  - [ ] Rendering of many log messages is slow, output to file?
 - [x] Create basic front-end.
 - [x] Fix camera glitching when going in and out of pause menu (also quit menu).
 - [x] Animated text effects in the HUD, for pickups, combat, etc..
@@ -112,36 +112,69 @@
   - [x] Loot GUI chest interactions.
   - [x] Crafting GUI functionality.
   - [x] Character GUI paperdoll render.
-  - [ ]  CharacterGUI particle effects.
-  - [ ]  CharacterGUI dynamic lighting.
-  - [ ]  CharacterGUI player poses and animation stances.
-- [x]  Investigate continuous automatic builds on github when files are submitted to depot, using cmake and make.
-- [x]  NPCs.
-- [x]  Enemies.
-  - [x]  Enemy spawners.
-- [ ]  Add VLD support to debug version, allow for memory leak detection.
-- [ ]  Add audio and music playback.
-- [x]  Add scenery manager.
-  - [ ]  Flower generation.
-  - [ ]  Poisson-disc separation and generation for random placement of scenery.
-  - [ ]  Convert scenery manager to use instance rendering and the instance shader.
-- [x]  Add Quest GUI.
-- [x]  Create front end scene and character line up.
-- [x]  Character creation and customization.
-- [x]  Add character creator and customization from front-end.
-- [ ]  Saving and loading chunks.
-  - [ ]  Group together chunks for saving, loading. Not individual
-- [ ]  Add voxel editor.
-- [ ]  Add texture support for voxel blocks.
-- [ ]  Water, creating and manipulation, rendering, updating.
-- [ ]  Add mode to play in reduced and low FPS.
-  - [ ]  Low FPS causes bad physics and also bad step-up block functionality, investigate and fix.
-- [ ]  Custom cursors - fingers.
-- [ ]  Dont allow jumping multiple times by holding down the space (or joy button).
-- [ ]  Allow for font changing on the fly, allow different font styles to go with the themes.
-- [ ]  Add shadow receiving on instanced rendered objects. (Add texture matrix to shader??)
-- [ ]  Player particle trail on walking.
-- [ ]  Test out Baked AO models using MagikaVoxel.
-- [ ]  Companion pets.
-- [ ]  Add debug render metrics for all counters (i.e num chunks, particles, items, triangles, verts, etc).
-- [ ]  Use mouse and gamepad sensativity in the looking and camera rotation functions.
+  - [x] CharacterGUI player poses and animation stances.
+  - [x] CharacterGUI particle effects.
+  - [ ] CharacterGUI dynamic lighting.
+- [x] Investigate continuous automatic builds on github when files are submitted to depot, using cmake and make.
+- [x] NPCs.
+- [x] Enemies.
+  - [x] Enemy spawners.
+- [x] Add scenery manager.
+  - [ ] Flower generation.
+  - [ ] Poisson-disc separation and generation for random placement of scenery.
+  - [ ] Convert scenery manager to use instance rendering and the instance shader.
+- [x] Add Quest GUI.
+- [x] Create front end scene and character line up.
+- [x] Character creation and customization.
+- [x] Add character creator and customization from front-end.
+- [x] Player particle trail on walking.
+- [x] Use proper animation pose for target camera mode, with different weapons.
+- [x] Add common front-end slider graphics and accessors in front-end manager.
+- [x] Custom cursors.
+- [x] Particle effects and lights in character GUI.
+  - [x] Have particles with characterGUI viewport flag, also another world matrix that isnt offset by position.
+  - [x] Add flag to block particles so that only weapon/item particles are rendered in the viewport (non world offset).
+- [x] Bug with HUD text when resizing (HP, experience, etc)
+- [x] Make sure to fully clear the quest journal, manager and QuestGUI when round tripping to the front-end.
+- [x] Debug GUI should be on top of HUD and action bar.
+- [x] Add a left/right pose to the character GUI animation pose so that hands can be animated seperately.
+- [x] Enemy and NPC particle effect and light update code should be simplfied, (like player) no duplication for left/right.
+- [x] Fix for getting hit / knockback when crafting or interating with items / chest / npc
+- [x] Physics & collision goes wrong with lag spikes when MoveAbsolute() is called, during a lag spike.
+- [x] Add common front-end label / button colours, hover, pressed, etc.
+- [x] Add spell hands attacks.
+- [x] Add dagger / knife attacks.
+- [x] Respawn button properly skinned and textured.
+- [x] Dont create dying lights for the weapons in the front-end create character screen, since this bleeds into the customization section.
+- [x] Add magic back into player logic.
+- [x] Random direction on mimic spawning.
+- [x] Mimics turning around when going back to non-aggro.
+- [x] Different default inventory when we load a different class type from the create character screen.
+- [x] Use mouse and gamepad sensativity in the looking and camera rotation functions.
+- [x] Fog rendering.
+- [x] Add easier crafting functionality, just a single function call.
+- [x] Water, creating and manipulation, rendering, updating.
+- [x] Create random loot manager and random loot dropping.
+- [x] NPC loading falls through the world when we road trip to the front-end and start the game, Because physics happens during loading.
+- [x] Better front-end scenery and character screens.
+- [x] Add audio and music playback.
+- [x] Add debug render metrics for all counters (i.e num chunks, particles, items, triangles, verts, etc).
+- [x] Remove debug options and debug controls in RELEASE mode.
+- [x] Add more presets for other body parts in character creator screen.
+- [ ] Add VLD support to debug version, allow for memory leak detection.
+- [ ] Saving and loading chunks.
+  - [ ] Group together chunks for saving, loading. Not individual
+- [ ] Add voxel editor.
+- [ ] Add texture support for voxel blocks.
+- [ ] Add mode to play in reduced and low FPS.
+  - [ ] Low FPS causes bad physics and also bad step-up block functionality, investigate and fix.
+- [ ] Dont allow jumping multiple times by holding down the space (or joy button).
+- [ ] Allow for font changing on the fly, allow different font styles to go with the themes.
+- [ ] Add shadow receiving on instanced rendered objects. (Add texture matrix to shader??)
+- [ ] Beter player walking - animation speeds, lean(?), speed up, slow down, etc
+- [ ] Test out Baked AO models using MagikaVoxel.
+- [ ] Companion pets.
+- [ ] Particle effects proper position when in first person mode!
+- [ ] Side stepping animation when in target camera mode.
+- [ ] Bug with custom cursors when going outside of windows bounds.
+- [ ] Don't allow 'other' buttons in select character screen when we have delet popup - i.e select, create, etc.

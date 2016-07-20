@@ -29,7 +29,7 @@ void VoxGame::BeginShaderRender()
 {
 	glShader* pShader = NULL;
 
-	if (m_shadows)
+	if (m_pVoxSettings->m_shadows)
 	{
 		m_pRenderer->BeginGLSLShader(m_shadowShader);
 
@@ -37,18 +37,35 @@ void VoxGame::BeginShaderRender()
 		GLuint shadowMapUniform = glGetUniformLocationARB(pShader->GetProgramObject(), "ShadowMap");
 		m_pRenderer->PrepareShaderTexture(7, shadowMapUniform);
 		m_pRenderer->BindRawTextureId(m_pRenderer->GetDepthTextureFromFrameBuffer(m_shadowFrameBuffer));
-		glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "renderShadow"), m_shadows);
+		glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "renderShadow"), m_pVoxSettings->m_shadows);
 		glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "alwaysShadow"), false);
 	}
 	else
 	{
 		m_pRenderer->BeginGLSLShader(m_defaultShader);
+
+		pShader = m_pRenderer->GetShader(m_defaultShader);
 	}
+
+	bool fogEnabled = (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_MainMenu) ? false : m_pVoxSettings->m_fogRendering;
+	glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "enableFog"), fogEnabled);
+	float lfogEnd = m_pChunkManager->GetLoaderRadius() - Chunk::CHUNK_SIZE*Chunk::BLOCK_RENDER_SIZE;
+	float lfogStart = lfogEnd - Chunk::CHUNK_SIZE*Chunk::BLOCK_RENDER_SIZE*2.0f;
+	GLfloat fogColor[4] = { 1.0f, 1.0f, 1.0f, 0.0f };
+	glFogi(GL_FOG_MODE, GL_LINEAR);
+	glFogfv(GL_FOG_COLOR, fogColor);
+	glFogf(GL_FOG_DENSITY, 1.0f);
+	glHint(GL_FOG_HINT, GL_DONT_CARE);
+	glFogf(GL_FOG_START, lfogStart);
+	glFogf(GL_FOG_END, lfogEnd);
+	glEnable(GL_FOG);
 }
 
 void VoxGame::EndShaderRender()
 {
-	if (m_shadows)
+	glDisable(GL_FOG);
+
+	if (m_pVoxSettings->m_shadows)
 	{
 		m_pRenderer->EndGLSLShader(m_shadowShader);
 	}
@@ -70,15 +87,9 @@ void VoxGame::Render()
 	m_pRenderer->BeginScene(true, true, true);
 
 		// Shadow rendering to the shadow frame buffer
-		if (m_shadows)
+		if (m_pVoxSettings->m_shadows)
 		{
 			RenderShadows();
-		}
-
-		// SSAO frame buffer rendering start
-		if (m_deferredRendering)
-		{
-			m_pRenderer->StartRenderingToFrameBuffer(m_SSAOFrameBuffer);
 		}
 
 		// ---------------------------------------
@@ -87,6 +98,9 @@ void VoxGame::Render()
 		m_pRenderer->PushMatrix();
 			// Set the default projection mode
 			m_pRenderer->SetProjectionMode(PM_PERSPECTIVE, m_defaultViewport);
+
+			// Enable vector normalization, for scaling and lighting
+			m_pRenderer->EnableVectorNormalize();
 
 			// Set back culling as default
 			m_pRenderer->SetCullMode(CM_BACK);
@@ -111,6 +125,21 @@ void VoxGame::Render()
 			{
 				m_pRenderer->DisableMultiSampling();
 			}
+
+			// Water reflections
+			if (m_pVoxSettings->m_waterRendering && m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()) == false && m_gameMode != GameMode_FrontEnd)
+			{
+				RenderWaterReflections();
+			}
+
+			// SSAO frame buffer rendering start
+			if (m_deferredRendering)
+			{
+				m_pRenderer->StartRenderingToFrameBuffer(m_SSAOFrameBuffer);
+			}
+
+			m_pRenderer->SetClearColour(0.0f, 0.0f, 0.0f, 1.0f);
+			m_pRenderer->ClearScene(true, true, true);
 
 			// Render the lights (DEBUG)
 			m_pRenderer->PushMatrix();
@@ -168,8 +197,11 @@ void VoxGame::Render()
 			}
 			EndShaderRender();
 
+			// Player selection block
+			m_pPlayer->RenderSelectionBlock();
+
 			// Render the block particles
-			m_pBlockParticleManager->Render();
+			m_pBlockParticleManager->Render(false);
 
 			// Render the instanced objects
 			if(m_instanceRender)
@@ -193,6 +225,27 @@ void VoxGame::Render()
 				}
 			}
 			EndShaderRender();
+
+			// Render the transparency items above the water render, so that they appear properly under water
+			if (m_pVoxSettings->m_waterRendering && m_gameMode != GameMode_FrontEnd)
+			{
+				if (m_cameraMode != CameraMode_FirstPerson)
+				{
+					m_pPlayer->RenderFace();
+				}
+				m_pNPCManager->RenderFaces();
+				m_pEnemyManager->RenderFaces();
+
+				if (m_cameraMode != CameraMode_FirstPerson)
+				{
+					m_pPlayer->RenderWeaponTrails();
+				}
+				m_pNPCManager->RenderWeaponTrails();
+				m_pEnemyManager->RenderWeaponTrails();
+
+				// Render water
+				RenderWater();
+			}
 
 			// Debug rendering
 			if(m_debugRender)
@@ -218,21 +271,29 @@ void VoxGame::Render()
 
 				m_pProjectileManager->RenderDebug();
 
+				m_pBiomeManager->RenderDebug();
+
 				if (m_gameMode == GameMode_FrontEnd)
 				{
 					m_pFrontendManager->RenderDebug();
 				}
 			}
-		m_pRenderer->PopMatrix();
 
-		// Render player first person viewport
-		if (m_gameMode != GameMode_FrontEnd)
-		{
-			if (m_cameraMode == CameraMode_FirstPerson)
+			// Render player first person viewport
+			if (m_gameMode != GameMode_FrontEnd)
 			{
-				RenderFirstPersonViewport();
+				if (m_cameraMode == CameraMode_FirstPerson)
+				{
+					RenderFirstPersonViewport();
+				}
 			}
-		}
+
+			// SSAO frame buffer rendering stop
+			if (m_deferredRendering)
+			{
+				m_pRenderer->StopRenderingToFrameBuffer(m_SSAOFrameBuffer);
+			}
+		m_pRenderer->PopMatrix();
 
 		// Render the deferred lighting pass
 		if (m_dynamicLighting)
@@ -240,15 +301,14 @@ void VoxGame::Render()
 			RenderDeferredLighting();
 		}
 
-		// SSAO frame buffer rendering stop
-		if (m_deferredRendering)
-		{
-			m_pRenderer->StopRenderingToFrameBuffer(m_SSAOFrameBuffer);
-		}
-
 		// Render other viewports
 		// Paperdoll for CharacterGUI
 		RenderPaperdollViewport();
+		// Portrait for HUD
+		if (m_pVoxSettings->m_renderGUI)
+		{
+			RenderPortraitViewport();
+		}
 
 		// ---------------------------------------
 		// Render transparency
@@ -265,7 +325,7 @@ void VoxGame::Render()
 				RenderFXAATexture();
 			}
 
-			if(m_blur)
+			if(m_blur || m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
 			{
 				RenderFirstPassFullScreen();
 				RenderSecondPassFullScreen();
@@ -276,10 +336,16 @@ void VoxGame::Render()
 		// Render 2d
 		// ---------------------------------------
 		m_pRenderer->PushMatrix();
+			// Disable multisampling for 2d gui and text
+			m_pRenderer->DisableMultiSampling();
+
 			// Crosshair
 			if (m_cameraMode == CameraMode_FirstPerson && m_bPaused == false)
 			{
-				RenderCrosshair();
+				if (m_pPlayer->IsDead() == false)
+				{
+					RenderCrosshair();
+				}
 			}
 
 			// Text effects
@@ -289,18 +355,20 @@ void VoxGame::Render()
 			RenderCinematicLetterBox();
 
 			// Render the HUD
-			RenderHUD();
+			if (m_pVoxSettings->m_renderGUI)
+			{
+				RenderHUD();
+			}
 		m_pRenderer->PopMatrix();
-
-		// Disable multisampling for 2d gui and text
-		m_pRenderer->DisableMultiSampling();
 
 		// Render other deferred rendering pipelines
 		// Paperdoll SSAO for CharacterGUI
 		RenderDeferredRenderingPaperDoll();
-
-		// Render debug information and text
-		RenderDebugInformation();
+		// Portrait SSAO for HUD
+		if (m_pVoxSettings->m_renderGUI)
+		{
+			RenderDeferredRenderingPortrait();
+		}
 
 		// Render the chunks 2d (debug text information)
 		if (m_debugRender)
@@ -323,6 +391,18 @@ void VoxGame::Render()
 
 		// Render the GUI
 		RenderGUI();
+
+		// Custom cursor
+		if (m_pVoxSettings->m_customCursors && m_bCustomCursorOn)
+		{
+			if (m_gameMode != GameMode_FrontEnd || m_pFrontendManager->GetFrontendScreen() != FrontendScreen_Intro)
+			{
+				RenderCustomCursor();
+			}
+		}
+
+		// Render debug information and text
+		RenderDebugInformation();
 
 		// Update the NPC screen positions for select character screen
 		m_pNPCManager->UpdateScreenCoordinates2d(m_pGameCamera);
@@ -405,7 +485,7 @@ void VoxGame::RenderShadows()
 			m_pItemManager->Render(false, false, false, true);
 
 			// Render the block particles
-			m_pBlockParticleManager->Render();
+			m_pBlockParticleManager->Render(false);
 
 			// Render the instanced objects
 			if(m_instanceRender)
@@ -419,6 +499,123 @@ void VoxGame::RenderShadows()
 
 		m_pRenderer->SetColourMask(true, true, true, true);
 		m_pRenderer->StopRenderingToFrameBuffer(m_shadowFrameBuffer);
+	m_pRenderer->PopMatrix();
+}
+
+void VoxGame::RenderWaterReflections()
+{
+	m_pRenderer->StartRenderingToFrameBuffer(m_waterReflectionFrameBuffer);
+
+	if (m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()) == false)
+	{
+		m_pRenderer->PushMatrix();
+			m_pRenderer->SetClearColour(0.0f, 0.0f, 0.0f, 1.0f);
+			m_pRenderer->ClearScene(true, false, false);
+			m_pRenderer->TranslateWorldMatrix(0.0f, (m_pChunkManager->GetWaterHeight()*2.0f), 0.0f);
+			m_pRenderer->ScaleWorldMatrix(1.0f, -1.0f, 1.0f);
+			m_pRenderer->SetCullMode(CM_FRONT);
+
+			m_pRenderer->EnableClipPlane(0, 0.0f, 1.0f, 0.0f, -m_pChunkManager->GetWaterHeight());
+
+			// Render the chunks
+			m_pChunkManager->Render(true);
+
+			// Player
+			if (m_gameMode != GameMode_FrontEnd)
+			{
+				m_pPlayer->Render();
+				m_pPlayer->RenderFace();
+				m_pPlayer->RenderWeaponTrails();
+			}
+
+			//// NPCs
+			//m_pNPCManager->Render(false, false, false, false, false, false);
+			//m_pNPCManager->RenderFaces();
+
+			//// Enemies
+			//m_pEnemyManager->Render(false, true, false, false);
+			//m_pEnemyManager->RenderFaces();
+
+			//// Projectiles
+			//m_pProjectileManager->Render();
+
+			//// Scenery
+			//m_pSceneryManager->Render(false, false, false, false, false);
+
+			//// Items
+			//m_pItemManager->Render(false, false, false, false);
+
+			//// Render the instanced objects
+			//if (m_instanceRender)
+			//{
+			//	m_pInstanceManager->Render();
+			//}
+
+			m_pRenderer->SetCullMode(CM_BACK);
+			m_pRenderer->DisableClipPlane(0);
+		m_pRenderer->PopMatrix();
+	}
+	m_pRenderer->StopRenderingToFrameBuffer(m_waterReflectionFrameBuffer);
+}
+
+void VoxGame::RenderWater()
+{
+	m_pRenderer->PushMatrix();
+
+	m_pRenderer->BeginGLSLShader(m_waterShader);
+
+		glShader* pShader = pShader = m_pRenderer->GetShader(m_waterShader);
+		unsigned int reflectionTexture = glGetUniformLocationARB(pShader->GetProgramObject(), "reflectionTexture");
+		unsigned int cubemapTexture = glGetUniformLocationARB(pShader->GetProgramObject(), "cubemap");
+		if (m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()) == false)
+		{
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			m_pRenderer->BindRawTextureId(m_pRenderer->GetDiffuseTextureFromFrameBuffer(m_waterReflectionFrameBuffer));
+			glUniform1iARB(reflectionTexture, 1);
+					
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+			m_pRenderer->BindCubeTexture(m_pSkybox->GetCubeMapTexture1());
+			glUniform1iARB(cubemapTexture, 0);
+		}
+		else
+		{
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glDisable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+			m_pRenderer->DisableCubeTexture();
+
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+		}
+
+		bool fogEnabled = (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_MainMenu) ? false : m_pVoxSettings->m_fogRendering;
+		glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "enableFog"), fogEnabled);
+		float lfogEnd = m_pChunkManager->GetLoaderRadius() - Chunk::CHUNK_SIZE*Chunk::BLOCK_RENDER_SIZE;
+		float lfogStart = lfogEnd - Chunk::CHUNK_SIZE*Chunk::BLOCK_RENDER_SIZE*2.0f;
+		GLfloat fogColor[4] = { 1.0f, 1.0f, 1.0f, 0.0f };
+		glFogi(GL_FOG_MODE, GL_LINEAR);
+		glFogfv(GL_FOG_COLOR, fogColor);
+		glFogf(GL_FOG_DENSITY, 1.0f);
+		glHint(GL_FOG_HINT, GL_DONT_CARE);
+		glFogf(GL_FOG_START, lfogStart);
+		glFogf(GL_FOG_END, lfogEnd);
+		glEnable(GL_FOG);
+
+		//pShader->setUniform1f("time", m_elapsedWaterTime);
+
+		m_pRenderer->TranslateWorldMatrix(m_pPlayer->GetCenter().x, 0.0f, m_pPlayer->GetCenter().z);
+		m_pChunkManager->RenderWater();
+
+		glDisable(GL_FOG);
+
+		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		m_pRenderer->DisableCubeTexture();
+		m_pRenderer->EndGLSLShader(m_waterShader);
 	m_pRenderer->PopMatrix();
 }
 
@@ -564,7 +761,7 @@ void VoxGame::RenderSSAOTexture()
 		{
 			m_pRenderer->StartRenderingToFrameBuffer(m_FXAAFrameBuffer);
 		}
-		else if (m_blur)
+		else if (m_blur || m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
 		{
 			m_pRenderer->StartRenderingToFrameBuffer(m_firstPassFullscreenBuffer);
 		}
@@ -598,7 +795,7 @@ void VoxGame::RenderSSAOTexture()
 		pShader->setUniform1f("nearZ", 0.01f);
 		pShader->setUniform1f("farZ", 1000.0f);
 
-		pShader->setUniform1f("samplingMultiplier", 0.5f);
+		pShader->setUniform1f("samplingMultiplier", 1.5f);
 
 		pShader->setUniform1i("lighting_enabled", m_dynamicLighting);
 		pShader->setUniform1i("ssao_enabled", m_ssao);
@@ -627,7 +824,7 @@ void VoxGame::RenderSSAOTexture()
 		{
 			m_pRenderer->StopRenderingToFrameBuffer(m_FXAAFrameBuffer);
 		}
-		else if (m_blur)
+		else if (m_blur || m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
 		{
 			m_pRenderer->StopRenderingToFrameBuffer(m_firstPassFullscreenBuffer);
 		}
@@ -640,7 +837,7 @@ void VoxGame::RenderFXAATexture()
 		m_pRenderer->SetProjectionMode(PM_2D, m_defaultViewport);
 		m_pRenderer->SetLookAtCamera(vec3(0.0f, 0.0f, 250.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 
-		if (m_blur)
+		if (m_blur || m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
 		{
 			m_pRenderer->StartRenderingToFrameBuffer(m_firstPassFullscreenBuffer);
 		}
@@ -671,7 +868,7 @@ void VoxGame::RenderFXAATexture()
 
 		m_pRenderer->EndGLSLShader(m_fxaaShader);
 
-		if (m_blur)
+		if (m_blur || m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
 		{
 			m_pRenderer->StopRenderingToFrameBuffer(m_firstPassFullscreenBuffer);
 		}
@@ -738,6 +935,13 @@ void VoxGame::RenderSecondPassFullScreen()
 
 		float blurSize = 0.0015f;
 
+		bool applyBlueTint = false;
+		if (m_pChunkManager->IsUnderWater(m_pGameCamera->GetPosition()))
+		{
+			blurSize = 0.0015f;
+			applyBlueTint = true;
+		}
+
 		// Override any blur amount if we have global blur set
 		if (m_globalBlurAmount > 0.0f)
 		{
@@ -745,6 +949,8 @@ void VoxGame::RenderSecondPassFullScreen()
 		}
 		
 		pShader->setUniform1f("blurSize", blurSize);
+
+		glUniform1iARB(glGetUniformLocationARB(pShader->GetProgramObject(), "applyBlueTint"), applyBlueTint);
 
 		m_pRenderer->SetRenderMode(RM_TEXTURED);
 		m_pRenderer->EnableImmediateMode(IM_QUADS);
@@ -817,6 +1023,12 @@ void VoxGame::RenderCinematicLetterBox()
 
 void VoxGame::RenderCrosshair()
 {
+	if (m_pVoxSettings->m_renderCrosshair == false)
+	{
+		// If render crosshair is turned off in the options menu
+		return;
+	}
+
 	m_pRenderer->PushMatrix();
 		m_pRenderer->SetProjectionMode(PM_2D, m_defaultViewport);
 
@@ -842,6 +1054,56 @@ void VoxGame::RenderCrosshair()
 			m_pRenderer->ImmediateVertex(-crosshairBorder, crosshairBorder, 3.0f);
 		m_pRenderer->DisableImmediateMode();
 
+	m_pRenderer->PopMatrix();
+}
+
+void VoxGame::RenderCustomCursor()
+{
+	m_pRenderer->PushMatrix();
+		//glLoadIdentity();
+		m_pRenderer->SetProjectionMode(PM_2D, m_defaultViewport);
+
+		m_pRenderer->SetLookAtCamera(vec3(0.0f, 0.0f, 250.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		m_pRenderer->SetRenderMode(RM_TEXTURED);
+		m_pRenderer->EnableTransparency(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA);
+
+		float cursorSize = 28.0f;
+		float xMouse = (float)m_pVoxWindow->GetCursorX();
+		float yMouse = m_windowHeight - (float)m_pVoxWindow->GetCursorY() - cursorSize;
+
+		if(m_bPressedCursorDown)
+		{
+			m_pRenderer->BindTexture(m_customCursorClickedBuffer);
+		}
+		else
+		{
+			m_pRenderer->BindTexture(m_customCursorNormalBuffer);
+		}		
+
+		m_pRenderer->TranslateWorldMatrix(xMouse, yMouse, 240.0f);
+		m_pRenderer->EnableImmediateMode(IM_QUADS);
+			m_pRenderer->ImmediateColourAlpha(1.0f, 1.0f, 1.0f, 1.0f);
+
+			m_pRenderer->ImmediateTextureCoordinate(0.0f, 1.0f);
+			m_pRenderer->ImmediateVertex(0.0f, 0.0f, 3.0f);
+			m_pRenderer->ImmediateTextureCoordinate(1.0f, 1.0f);
+			m_pRenderer->ImmediateVertex(cursorSize, 0.0f, 3.0f);
+			m_pRenderer->ImmediateTextureCoordinate(1.0f, 0.0f);
+			m_pRenderer->ImmediateVertex(cursorSize, cursorSize, 3.0f);
+			m_pRenderer->ImmediateTextureCoordinate(0.0f, 0.0f);
+			m_pRenderer->ImmediateVertex(0.0f, cursorSize, 3.0f);
+		m_pRenderer->DisableImmediateMode();
+
+		m_pRenderer->DisableTransparency();
+
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	m_pRenderer->PopMatrix();
 }
 
@@ -888,6 +1150,9 @@ void VoxGame::RenderPaperdollViewport()
 				glDisable(GL_TEXTURE_2D);
 				glBindTexture(GL_TEXTURE_2D, 0);
 
+				// Render the block particles
+				m_pBlockParticleManager->Render(true);
+
 				if(m_modelWireframe == false)
 				{
 					m_pRenderer->BeginGLSLShader(m_textureShader);
@@ -903,6 +1168,67 @@ void VoxGame::RenderPaperdollViewport()
 		m_pRenderer->PopMatrix();
 
 		m_pRenderer->StopRenderingToFrameBuffer(m_paperdollBuffer);
+	}
+}
+
+void VoxGame::RenderPortraitViewport()
+{
+	if(m_pHUD->IsLoaded())
+	{
+		m_pRenderer->StartRenderingToFrameBuffer(m_portraitBuffer);
+
+		m_pRenderer->PushMatrix();
+			glLoadIdentity();
+
+			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glClearDepth(1.0);
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			m_pRenderer->SetProjectionMode(PM_PERSPECTIVE, m_portraitViewport);
+
+			m_pRenderer->SetLookAtCamera(vec3(0.0f, 2.05f, 1.5f), vec3(0.0f, 2.05f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+			// Render the player
+			m_pRenderer->PushMatrix();
+				m_pRenderer->StartMeshRender();
+
+				if(m_modelWireframe == false)
+				{
+					m_pRenderer->BeginGLSLShader(m_paperdollShader);
+				}
+
+				m_pRenderer->RotateWorldMatrix(0.0f, -30.0f, 0.0f);
+
+				m_pPlayer->RenderPortrait();
+
+				if(m_modelWireframe == false)
+				{
+					m_pRenderer->EndGLSLShader(m_paperdollShader);
+				}
+
+				m_pRenderer->EndMeshRender();
+
+				glActiveTextureARB(GL_TEXTURE0_ARB);
+				glDisable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				if(m_modelWireframe == false)
+				{
+					m_pRenderer->BeginGLSLShader(m_textureShader);
+				}
+
+				m_pPlayer->RenderPortraitFace();
+
+				if(m_modelWireframe == false)
+				{
+					m_pRenderer->EndGLSLShader(m_textureShader);
+				}
+			m_pRenderer->PopMatrix();
+		m_pRenderer->PopMatrix();
+
+		m_pRenderer->StopRenderingToFrameBuffer(m_portraitBuffer);
 	}
 }
 
@@ -995,6 +1321,70 @@ void VoxGame::RenderDeferredRenderingPaperDoll()
 	m_pRenderer->StopRenderingToFrameBuffer(m_paperdollSSAOTextureBuffer);
 }
 
+void VoxGame::RenderDeferredRenderingPortrait()
+{
+	m_pRenderer->StartRenderingToFrameBuffer(m_portraitSSAOTextureBuffer);
+
+	m_pRenderer->PushMatrix();
+		m_pRenderer->SetProjectionMode(PM_2D, m_portraitViewport);
+
+		m_pRenderer->SetLookAtCamera(vec3(0.0f, 0.0f, 250.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+		m_pRenderer->BeginGLSLShader(m_SSAOShader);
+		glShader* pShader = m_pRenderer->GetShader(m_SSAOShader);
+
+		unsigned int textureId = glGetUniformLocationARB(pShader->GetProgramObject(), "bgl_DepthTexture");
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		m_pRenderer->BindRawTextureId(m_pRenderer->GetDepthTextureFromFrameBuffer(m_portraitBuffer));
+		glUniform1iARB(textureId, 0);
+
+		unsigned int textureId2 = glGetUniformLocationARB(pShader->GetProgramObject(), "bgl_RenderedTexture");
+		glActiveTextureARB(GL_TEXTURE1_ARB);
+		m_pRenderer->BindRawTextureId(m_pRenderer->GetDiffuseTextureFromFrameBuffer(m_portraitBuffer));
+		glUniform1iARB(textureId2, 1);
+
+		pShader->setUniform1i("screenWidth", m_windowWidth);
+		pShader->setUniform1i("screenHeight", m_windowHeight);
+		pShader->setUniform1f("nearZ", 0.01f);
+		pShader->setUniform1f("farZ", 1000.0f);
+
+		pShader->setUniform1f("samplingMultiplier", 0.5f);
+		pShader->setUniform1i("lighting_enabled", false);
+
+		m_pRenderer->SetRenderMode(RM_TEXTURED);
+		m_pRenderer->EnableImmediateMode(IM_QUADS);
+			m_pRenderer->ImmediateTextureCoordinate(0.0f, 0.0f);
+			m_pRenderer->ImmediateVertex(0.0f, 0.0f, 2.0f);
+			m_pRenderer->ImmediateTextureCoordinate(1.0f, 0.0f);
+			m_pRenderer->ImmediateVertex((float)m_windowWidth, 0.0f, 2.0f);
+			m_pRenderer->ImmediateTextureCoordinate(1.0f, 1.0f);
+			m_pRenderer->ImmediateVertex((float)m_windowWidth, (float)m_windowHeight, 2.0f);
+			m_pRenderer->ImmediateTextureCoordinate(0.0f, 1.0f);
+			m_pRenderer->ImmediateVertex(0.0f, (float)m_windowHeight, 2.0f);
+		m_pRenderer->DisableImmediateMode();
+
+		glActiveTextureARB(GL_TEXTURE3_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glActiveTextureARB(GL_TEXTURE2_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		m_pRenderer->EndGLSLShader(m_SSAOShader);
+	m_pRenderer->PopMatrix();
+
+	m_pRenderer->StopRenderingToFrameBuffer(m_portraitSSAOTextureBuffer);
+}
+
 void VoxGame::RenderDebugInformation()
 {
 	char lCameraBuff[256];
@@ -1007,11 +1397,11 @@ void VoxGame::RenderDebugInformation()
 		m_pGameCamera->GetZoomAmount());
 
 	char lDrawingBuff[256];
-	sprintf(lDrawingBuff, "Vertices: %i, Faces: %i", 0, 0); // TODO : Debug rendering Metrics
+	sprintf(lDrawingBuff, "Vertices: %i, Faces: %i", m_pRenderer->GetNumRenderedVertices(), m_pRenderer->GetNumRenderedFaces());
 	char lChunksBuff[256];
 	sprintf(lChunksBuff, "Chunks: %i, Render: %i", m_pChunkManager->GetNumChunksLoaded(), m_pChunkManager->GetNumChunksRender());
 	char lParticlesBuff[256];
-	sprintf(lParticlesBuff, "Particles: %i, Render: %i, Emitters: %i, Effects: %i", m_pBlockParticleManager->GetNumBlockParticles(), m_pBlockParticleManager->GetNumRenderableParticles(), m_pBlockParticleManager->GetNumBlockParticleEmitters(), m_pBlockParticleManager->GetNumBlockParticleEffects());
+	sprintf(lParticlesBuff, "Particles: %i, Render: %i, Emitters: %i, Effects: %i", m_pBlockParticleManager->GetNumBlockParticles(), m_pBlockParticleManager->GetNumRenderableParticles(false), m_pBlockParticleManager->GetNumBlockParticleEmitters(), m_pBlockParticleManager->GetNumBlockParticleEffects());
 	char lItemsBuff[256];
 	sprintf(lItemsBuff, "Items: %i, Render: %i", m_pItemManager->GetNumItems(), m_pItemManager->GetNumRenderItems());
 	char lNPCBuff[256];
@@ -1053,7 +1443,7 @@ void VoxGame::RenderDebugInformation()
 		if (m_debugRender)
 		{
 			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight * 1) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lCameraBuff);
-			//m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight*2) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lDrawingBuff);
+			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight*2) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lDrawingBuff);
 			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight * 3) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lChunksBuff);
 			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight * 4) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lParticlesBuff);
 			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight * 5) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lItemsBuff);
@@ -1063,7 +1453,10 @@ void VoxGame::RenderDebugInformation()
 			m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, m_windowHeight - (l_nTextHeight * 9) - 10.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lInstancesBuff);
 		}
 
-		m_pRenderer->RenderFreeTypeText(m_defaultFont, m_windowWidth-fpsWidthOffset, 15.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lFPSBuff);
+		if (STEAM_BUILD == false)
+		{
+			m_pRenderer->RenderFreeTypeText(m_defaultFont, m_windowWidth - fpsWidthOffset, 15.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f), 1.0f, lFPSBuff);
+		}
 		m_pRenderer->RenderFreeTypeText(m_defaultFont, 15.0f, 15.0f, 1.0f, Colour(0.75f, 0.75f, 0.75f), 1.0f, lBuildInfo);
 
 	m_pRenderer->PopMatrix();

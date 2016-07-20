@@ -41,6 +41,8 @@ BlockParticleEffect::BlockParticleEffect(Renderer* pRenderer, BlockParticleManag
 	m_endless = true;
 	m_lifeTime = 1.0f;
 	m_lifeTimer = m_lifeTime;
+
+	m_renderNoWoldOffsetViewport = false;
 }
 
 BlockParticleEffect::~BlockParticleEffect()

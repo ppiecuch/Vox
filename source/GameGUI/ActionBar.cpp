@@ -436,6 +436,12 @@ void ActionBar::UseActionBarslot(int slotIndex)
 		return;
 	}
 
+	if (m_pPlayer->IsCrafting())
+	{
+		// Don't allow to use the action bar when we are crafting.
+		return;
+	}
+
 	ActionButtonItem* pItem = GetActionButtonForSlot(slotIndex);
 	if(pItem != NULL && pItem->m_inventoryX != -1 && pItem->m_inventoryY != -1)
 	{
@@ -465,7 +471,7 @@ void ActionBar::UseActionBarslot(int slotIndex)
 									int slotX;
 									int slotY;
 									// Unequip the left hand slot since we are dual handed, OR the already equipped left hand item needs both hands
-									m_pInventoryGUI->UnequipItem(EquipSlot_LeftHand);
+									m_pInventoryGUI->UnequipItem(EquipSlot_LeftHand, false, false);
 									if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_LeftHand, &slotX, &slotY) == false)
 									{
 										// We can't fit the other item in the inventory
@@ -484,7 +490,7 @@ void ActionBar::UseActionBarslot(int slotIndex)
 									int slotX;
 									int slotY;
 									// Unequip the right hand slot since we are dual handed, OR the already equipped right hand item needs both hands
-									m_pInventoryGUI->UnequipItem(EquipSlot_RightHand);
+									m_pInventoryGUI->UnequipItem(EquipSlot_RightHand, false, false);
 									if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_RightHand, &slotX, &slotY) == false)
 									{
 										// We can't fit the other item in the inventory
@@ -496,7 +502,7 @@ void ActionBar::UseActionBarslot(int slotIndex)
 								}
 							}
 
-							m_pPlayer->UnequipItem(pInventoryItem->m_equipSlot);
+							m_pPlayer->UnequipItem(pInventoryItem->m_equipSlot, pInventoryItem->m_left, pInventoryItem->m_right);
 
 							m_pInventoryManager->EquipInventoryItem(pItem->m_inventoryX, pItem->m_inventoryY, pInventoryItem->m_equipSlot);
 							m_pInventoryGUI->EquipItem(pInventoryItem, pItem->m_inventoryX, pItem->m_inventoryY);

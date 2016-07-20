@@ -74,7 +74,7 @@ void VoxGame::UpdateKeyboardControls(float dt)
 
 				if (IsGUIWindowStillDisplayed() == false)
 				{
-					TurnCursorOff();
+					TurnCursorOff(false);
 				}
 			}
 			else
@@ -95,6 +95,12 @@ void VoxGame::UpdateKeyboardControls(float dt)
 				{
 					m_pFrontendManager->SetFrontendScreen(FrontendScreen_PauseMenu);
 				}
+			}
+
+			// Cancel quit popup menu with escape button
+			if (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_QuitPopup)
+			{
+				VoxGame::GetInstance()->CancelQuitPopup();
 			}
 		}
 
@@ -161,6 +167,8 @@ void VoxGame::UpdateKeyboardControls(float dt)
 						}
 					}
 
+					float targetModeMovementRatio = 0.65f;
+
 					// Forwards, backwards, strafe, left, right directional movement
 					if (m_bKeyboardForward)
 					{
@@ -179,7 +187,7 @@ void VoxGame::UpdateKeyboardControls(float dt)
 						}
 						else
 						{
-							m_pPlayer->Move(m_movementSpeed * dt);
+							m_pPlayer->Move(m_movementSpeed * targetModeMovementRatio * dt);
 						}
 					}
 
@@ -200,7 +208,7 @@ void VoxGame::UpdateKeyboardControls(float dt)
 						}
 						else
 						{
-							m_pPlayer->Move(-m_movementSpeed * dt);
+							m_pPlayer->Move(-m_movementSpeed * targetModeMovementRatio * dt);
 						}
 					}
 
@@ -226,7 +234,7 @@ void VoxGame::UpdateKeyboardControls(float dt)
 								m_targetCameraXAxisAmount_Target = 1.0f;
 							}
 
-							m_pPlayer->Strafe(m_movementSpeed * dt);
+							m_pPlayer->Strafe(m_movementSpeed * targetModeMovementRatio * dt);
 						}
 					}
 
@@ -252,7 +260,7 @@ void VoxGame::UpdateKeyboardControls(float dt)
 								m_targetCameraXAxisAmount_Target = -1.0f;
 							}
 
-							m_pPlayer->Strafe(-m_movementSpeed * dt);
+							m_pPlayer->Strafe(-m_movementSpeed * targetModeMovementRatio * dt);
 						}
 					}
 
@@ -464,8 +472,8 @@ void VoxGame::UpdateGamePadControls(float dt)
 							m_targetCameraXAxisAmount_Target = -1.0f;
 						}
 
-						m_pPlayer->Move(-axisY * 10.0f * dt);
-						m_pPlayer->Strafe(-axisX * 10.0f * dt);
+						m_pPlayer->Move(-axisY * 10.0f * dt);  // TODO : Is this a good value for gamepad movement speed?
+						m_pPlayer->Strafe(-axisX * 10.0f * dt);  // TODO : Is this a good value for gamepad movement speed?
 					}
 				}
 			}

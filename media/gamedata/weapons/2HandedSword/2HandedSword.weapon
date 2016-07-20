@@ -37,7 +37,7 @@ connectedToSection: -1
 numParticleEffects: 0
 
 numWeaponTrails: 1
-trailTime: 0.25
+trailTime: 0.15
 startOffsetPoint: 0 2 0
 endOffsetPoint: 0 15 0
 trailColour: 0 1 0

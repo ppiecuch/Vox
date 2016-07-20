@@ -10,6 +10,7 @@
 // ******************************************************************************
 
 #include "Skybox.h"
+#include "../VoxGame.h"
 
 
 Skybox::Skybox(Renderer* pRenderer)
@@ -18,6 +19,12 @@ Skybox::Skybox(Renderer* pRenderer)
 
 	SetSkybox1("glacier");
 	SetSkybox2("delirious");
+
+	m_skyBoxNames[Biome_None] = "glacier";
+	m_skyBoxNames[Biome_GrassLand] = "glacier";
+	m_skyBoxNames[Biome_Desert] = "desert";
+	m_skyBoxNames[Biome_Tundra] = "blue_sky";
+	m_skyBoxNames[Biome_AshLand] = "delirious";
 }
 
 Skybox::~Skybox()
@@ -64,11 +71,16 @@ unsigned int Skybox::GetCubeMapTexture2()
 	return m_cubeTextureId2;
 }
 
+void Skybox::SetCurrentBiome(Biome currentBiome)
+{
+	SetSkybox1(m_skyBoxNames[currentBiome]);
+}
+
 void Skybox::Render()
 {
-	float width = 1000.0f;
-	float height = 1000.0f;
-	float length = 1000.0f;
+	float width = 4000.0f;
+	float height = 4000.0f;
+	float length = 4000.0f;
 
 	// Center the Skybox around the given x,y,z position
 	float x = -(width*0.5f);

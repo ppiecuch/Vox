@@ -25,6 +25,7 @@
 #include "../Projectile/Projectile.h"
 #include "../NPC/NPCManager.h"
 #include "../NPC/NPC.h"
+#include "../VoxGame.h"
 
 
 EnemySpawner::EnemySpawner(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, EnemyManager* pEnemyManager, NPCManager* pNPCManager)
@@ -88,7 +89,7 @@ bool EnemySpawner::ShouldFollowPlayer()
 }
 
 // Spawning params
-void EnemySpawner::SetSpawningParams(float initialSpawnDelay, float spawnTimer, int maxNumEnemiesActive, vec3 spawnRandomOffset, bool shouldSpawnOnGround, vec3 groundSpawnOffset, bool followPlayerIntheWorld, bool spawnFullLoaderRange, float minDistanceFromPlayer)
+void EnemySpawner::SetSpawningParams(float initialSpawnDelay, float spawnTimer, int maxNumEnemiesActive, vec3 spawnRandomOffset, bool shouldSpawnOnGround, vec3 groundSpawnOffset, bool followPlayerIntheWorld, bool spawnFullLoaderRange, float minDistanceFromPlayer, Biome biomeSpawn)
 {
 	m_spawnTime = spawnTimer;
 	m_maxNumEnemiesToHaveActive = maxNumEnemiesActive;
@@ -98,6 +99,7 @@ void EnemySpawner::SetSpawningParams(float initialSpawnDelay, float spawnTimer, 
 	m_followPlayerIntheWorld = followPlayerIntheWorld;
 	m_spawnFullLoaderRange = spawnFullLoaderRange;
 	m_minDistanceFromPlayer = minDistanceFromPlayer;
+	m_biomeSpawn = biomeSpawn;
 
 	if(initialSpawnDelay >= 0.0f)
 	{
@@ -137,35 +139,59 @@ eEnemyType EnemySpawner::GetEnemyTypeToSpawn()
 	return m_vpEnemyTypeList[randomNum];
 }
 
-vec3 EnemySpawner::GetSpawnPosition()
+bool EnemySpawner::GetSpawnPosition(vec3* pSpawnPosition)
 {
-	vec3 spawnPos = m_position;
-	vec3 randomOffset;
-
-	if(m_spawnFullLoaderRange)
+	bool lLocationGood = false;
+	int numTries = 0;
+	while (lLocationGood == false && numTries < 10)
 	{
-		float loaderRadius = m_pChunkManager->GetLoaderRadius();
-		randomOffset = vec3(GetRandomNumber(-100, 100, 2)*0.01f*loaderRadius, GetRandomNumber(-100, 100, 2)*0.01f*m_spawnRandomOffset.y, GetRandomNumber(-100, 100, 2)*0.01f*loaderRadius);
-	}
-	else
-	{
-		randomOffset = vec3(GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.x-8.0f), GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.y-8.0f), GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.z-8.0f));
-	}
+		vec3 spawnPos = m_position;
+		vec3 randomOffset;
 
-	spawnPos += randomOffset;
-
-	if(m_shouldSpawnOnGround)
-	{
-		vec3 floorPosition;
-		if(m_pChunkManager->FindClosestFloor(spawnPos, &floorPosition))
+		if (m_spawnFullLoaderRange)
 		{
-			spawnPos = floorPosition + vec3(0.0f, 0.01f, 0.0f);
+			float loaderRadius = m_pChunkManager->GetLoaderRadius();
+			randomOffset = vec3(GetRandomNumber(-100, 100, 2)*0.01f*loaderRadius, GetRandomNumber(-100, 100, 2)*0.01f*loaderRadius, GetRandomNumber(-100, 100, 2)*0.01f*loaderRadius);
+		}
+		else
+		{
+			randomOffset = vec3(GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.x - 8.0f), GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.y - 8.0f), GetRandomNumber(-100, 100, 2)*0.01f*(m_spawnRandomOffset.z - 8.0f));
 		}
 
-		spawnPos += m_groundSpawnOffset;
+		spawnPos += randomOffset;
+
+		int blockX, blockY, blockZ;
+		vec3 blockPos;
+		Chunk* pChunk = NULL;
+		bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(spawnPos.x, spawnPos.y, spawnPos.z, &blockPos, &blockX, &blockY, &blockZ, &pChunk);
+		if (pChunk != NULL && pChunk->IsSetup() && active == false)
+		{
+			if (m_shouldSpawnOnGround)
+			{
+				vec3 floorPosition;
+				if (m_pChunkManager->FindClosestFloor(spawnPos, &floorPosition))
+				{
+					spawnPos = floorPosition + vec3(0.0f, 0.01f, 0.0f);
+					spawnPos += m_groundSpawnOffset;
+
+					Biome biome = VoxGame::GetInstance()->GetBiomeManager()->GetBiome(spawnPos);
+					ZoneData *pTown = NULL;
+					ZoneData *pSafeZone = NULL;
+					bool isInTown = VoxGame::GetInstance()->GetBiomeManager()->IsInTown(spawnPos, &pTown);
+					bool isInSafeZone = VoxGame::GetInstance()->GetBiomeManager()->IsInSafeZone(spawnPos, &pSafeZone);
+					if (biome == m_biomeSpawn && isInTown == false && isInSafeZone == false)
+					{
+						*pSpawnPosition = spawnPos;
+						lLocationGood = true;
+					}
+				}
+			}
+		}
+		
+		numTries++;
 	}
 
-	return spawnPos;
+	return lLocationGood;
 }
 
 // Updating
@@ -180,21 +206,34 @@ void EnemySpawner::Update(float dt)
 	{
 		if(m_spawnCountdownTimer <= 0.0f)
 		{
-			vec3 spawnPos = GetSpawnPosition();
+			vec3 spawnPos;
+			bool spawnGood = GetSpawnPosition(&spawnPos);
+			int numEnemies = m_pEnemyManager->GetNumEnemies();
 
-			vec3 toPlayer = spawnPos - m_pPlayer->GetCenter();
-			if(length(toPlayer) > m_minDistanceFromPlayer)
+			if (spawnGood && numEnemies < EnemyManager::MAX_NUM_ENEMIES)
 			{
-				eEnemyType enemyType = GetEnemyTypeToSpawn();
+				vec3 toPlayer = spawnPos - m_pPlayer->GetCenter();
+				if (length(toPlayer) > m_minDistanceFromPlayer)
+				{
+					eEnemyType enemyType = GetEnemyTypeToSpawn();
 
-				Enemy* pEnemy = m_pEnemyManager->CreateEnemy(spawnPos, enemyType, 0.08f);
-				pEnemy->SetSpawningParams(spawnPos, spawnPos, 2.0f);
-				pEnemy->SetTargetForwardToLookAtPoint(spawnPos + m_spawnFacingDirection);
-				pEnemy->SetEnemySpawner(this);
+					Enemy* pEnemy = m_pEnemyManager->CreateEnemy(spawnPos, enemyType, 0.08f);
+					pEnemy->SetSpawningParams(spawnPos, spawnPos, 0.0f);
+					pEnemy->SetTargetForwardToLookAtPoint(spawnPos + m_spawnFacingDirection);
+					pEnemy->SetEnemySpawner(this);
+					
+					pEnemy->SetRotation(GetRandomNumber(0, 360, 2));
+					pEnemy->SetTargetForwardToLookAtPoint(pEnemy->GetPosition() + pEnemy->GetTargetForward());
 
-				m_numSpawnedEnemies += 1;
+					m_numSpawnedEnemies += 1;
 
-				m_spawnCountdownTimer = m_spawnTime;
+					m_spawnCountdownTimer = m_spawnTime;
+				}
+			}
+			else
+			{
+				// Can't spawn an enemy at a good position, wait a while before we try again
+				m_spawnCountdownTimer = 0.5f;
 			}
 		}
 	}

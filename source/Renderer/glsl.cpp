@@ -68,7 +68,7 @@ Initialization:
 //{
 //-----------------------------------------------------------------------------
 // Error, Warning and Info Strings
-char* aGLSLStrings[] = {
+const char* aGLSLStrings[] = {
         "[e00] GLSL is not available!",
         "[e01] Not a valid program object!",
         "[e02] Not a valid object!",
@@ -81,7 +81,7 @@ char* aGLSLStrings[] = {
 //-----------------------------------------------------------------------------      
  
 // GL ERROR CHECK
-   int CheckGLError(char *file, int line)
+   int CheckGLError(const char *file, int line)
    {
 	   GLenum glErr;
 	   int    retCode = 0;
@@ -363,7 +363,7 @@ return false;
 //----------------------------------------------------------------------------- 
 // Compiler Log: Ausgabe der Compiler Meldungen in String
 
-char* glShader::getLinkerLog(void)
+const char* glShader::getLinkerLog(void)
 {    
 if (!useGLSL) return aGLSLStrings[0];
  
@@ -426,7 +426,7 @@ if (!_noshader) return;
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform1f(GLcharARB* varname, GLfloat v0, GLint index)
+bool glShader::setUniform1f(const GLcharARB* varname, GLfloat v0, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -448,7 +448,7 @@ bool glShader::setUniform1f(GLcharARB* varname, GLfloat v0, GLint index)
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform2f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLint index)
+bool glShader::setUniform2f(const GLcharARB* varname, GLfloat v0, GLfloat v1, GLint index)
 {
    if (!useGLSL) return false; // GLSL not available
    if (!_noshader) return true;
@@ -469,7 +469,7 @@ bool glShader::setUniform2f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLint in
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform3f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat v2, GLint index)
+bool glShader::setUniform3f(const GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat v2, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -490,7 +490,7 @@ bool glShader::setUniform3f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat 
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform4f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3, GLint index)
+bool glShader::setUniform4f(const GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -511,7 +511,7 @@ bool glShader::setUniform4f(GLcharARB* varname, GLfloat v0, GLfloat v1, GLfloat 
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform1i(GLcharARB* varname, GLint v0, GLint index)
+bool glShader::setUniform1i(const GLcharARB* varname, GLint v0, GLint index)
 { 
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -532,7 +532,7 @@ bool glShader::setUniform1i(GLcharARB* varname, GLint v0, GLint index)
 
 //-----------------------------------------------------------------------------
 
-bool glShader::setUniform2i(GLcharARB* varname, GLint v0, GLint v1, GLint index)
+bool glShader::setUniform2i(const GLcharARB* varname, GLint v0, GLint v1, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -554,7 +554,7 @@ bool glShader::setUniform2i(GLcharARB* varname, GLint v0, GLint v1, GLint index)
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform3i(GLcharARB* varname, GLint v0, GLint v1, GLint v2, GLint index)
+bool glShader::setUniform3i(const GLcharARB* varname, GLint v0, GLint v1, GLint v2, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -575,7 +575,7 @@ bool glShader::setUniform3i(GLcharARB* varname, GLint v0, GLint v1, GLint v2, GL
 
 //-----------------------------------------------------------------------------
 
-bool glShader::setUniform4i(GLcharARB* varname, GLint v0, GLint v1, GLint v2, GLint v3, GLint index)
+bool glShader::setUniform4i(const GLcharARB* varname, GLint v0, GLint v1, GLint v2, GLint v3, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
@@ -596,7 +596,7 @@ bool glShader::setUniform4i(GLcharARB* varname, GLint v0, GLint v1, GLint v2, GL
 //-----------------------------------------------------------------------------
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform1ui(GLcharARB* varname, GLuint v0, GLint index)
+bool glShader::setUniform1ui(const GLcharARB* varname, GLuint v0, GLint index)
 { 
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
@@ -618,7 +618,7 @@ bool glShader::setUniform1ui(GLcharARB* varname, GLuint v0, GLint index)
 
 //-----------------------------------------------------------------------------
 
-bool glShader::setUniform2ui(GLcharARB* varname, GLuint v0, GLuint v1, GLint index)
+bool glShader::setUniform2ui(const GLcharARB* varname, GLuint v0, GLuint v1, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
@@ -641,7 +641,7 @@ bool glShader::setUniform2ui(GLcharARB* varname, GLuint v0, GLuint v1, GLint ind
 
 //----------------------------------------------------------------------------- 
 
-bool glShader::setUniform3ui(GLcharARB* varname, GLuint v0, GLuint v1, GLuint v2, GLint index)
+bool glShader::setUniform3ui(const GLcharARB* varname, GLuint v0, GLuint v1, GLuint v2, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
@@ -663,349 +663,349 @@ bool glShader::setUniform3ui(GLcharARB* varname, GLuint v0, GLuint v1, GLuint v2
 
 //-----------------------------------------------------------------------------
 
-bool glShader::setUniform4ui(GLcharARB* varname, GLuint v0, GLuint v1, GLuint v2, GLuint v3, GLint index)
+bool glShader::setUniform4ui(const GLcharARB* varname, GLuint v0, GLuint v1, GLuint v2, GLuint v3, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform4uiEXT(loc, v0, v1, v2, v3);
 
     return true;
 }
 //-----------------------------------------------------------------------------
 
-bool glShader::setUniform1fv(GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
+bool glShader::setUniform1fv(const GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform1fv(loc, count, value);
 
     return true;
 }
-bool glShader::setUniform2fv(GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
+bool glShader::setUniform2fv(const GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform2fv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform3fv(GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
+bool glShader::setUniform3fv(const GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform3fv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform4fv(GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
+bool glShader::setUniform4fv(const GLcharARB* varname, GLsizei count, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform4fv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform1iv(GLcharARB* varname, GLsizei count, GLint *value, GLint index)
+bool glShader::setUniform1iv(const GLcharARB* varname, GLsizei count, GLint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform1iv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform2iv(GLcharARB* varname, GLsizei count, GLint *value, GLint index)
+bool glShader::setUniform2iv(const GLcharARB* varname, GLsizei count, GLint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform2iv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform3iv(GLcharARB* varname, GLsizei count, GLint *value, GLint index)
+bool glShader::setUniform3iv(const GLcharARB* varname, GLsizei count, GLint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform3iv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform4iv(GLcharARB* varname, GLsizei count, GLint *value, GLint index)
+bool glShader::setUniform4iv(const GLcharARB* varname, GLsizei count, GLint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform4iv(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform1uiv(GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
+bool glShader::setUniform1uiv(const GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform1uivEXT(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform2uiv(GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
+bool glShader::setUniform2uiv(const GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform2uivEXT(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform3uiv(GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
+bool glShader::setUniform3uiv(const GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform3uivEXT(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniform4uiv(GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
+bool glShader::setUniform4uiv(const GLcharARB* varname, GLsizei count, GLuint *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!bGPUShader4) return false;
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniform4uivEXT(loc, count, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniformMatrix2fv(GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
+bool glShader::setUniformMatrix2fv(const GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniformMatrix2fv(loc, count, transpose, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniformMatrix3fv(GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
+bool glShader::setUniformMatrix3fv(const GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniformMatrix3fv(loc, count, transpose, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-bool glShader::setUniformMatrix4fv(GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
+bool glShader::setUniformMatrix4fv(const GLcharARB* varname, GLsizei count, GLboolean transpose, GLfloat *value, GLint index)
 {
     if (!useGLSL) return false; // GLSL not available
     if (!_noshader) return true;
-    
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return false;  // can't find variable / invalid index
-    
+
     glUniformMatrix4fv(loc, count, transpose, value);
 
     return true;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
 GLint glShader::GetUniformLocation(const GLcharARB *name)
 {
 	GLint loc;
 
 	loc = glGetUniformLocation(ProgramObject, name);
-	if (loc == -1) 
+	if (loc == -1)
 	{
         cout << "Error: can't find uniform variable \"" << name << "\"\n";
 	}
@@ -1013,28 +1013,28 @@ GLint glShader::GetUniformLocation(const GLcharARB *name)
 	return loc;
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-void glShader::getUniformfv(GLcharARB* varname, GLfloat* values, GLint index)
+void glShader::getUniformfv(const GLcharARB* varname, GLfloat* values, GLint index)
 {
 if (!useGLSL) return;
- 
+
     GLint loc;
     if (varname)
        loc = GetUniformLocation(varname);
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return;  // can't find variable / invalid index
 
 	glGetUniformfv(ProgramObject, loc, values);
-	
+
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-void glShader::getUniformiv(GLcharARB* varname, GLint* values, GLint index)
+void glShader::getUniformiv(const GLcharARB* varname, GLint* values, GLint index)
 {
     if (!useGLSL) return;
 
@@ -1044,16 +1044,16 @@ void glShader::getUniformiv(GLcharARB* varname, GLint* values, GLint index)
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return;  // can't find variable / invalid index
-	
+
 	glGetUniformiv(ProgramObject, loc, values);
 
 }
 
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 
-void glShader::getUniformuiv(GLcharARB* varname, GLuint* values, GLint index)
+void glShader::getUniformuiv(const GLcharARB* varname, GLuint* values, GLint index)
 {
     if (!useGLSL) return;
 
@@ -1063,9 +1063,9 @@ void glShader::getUniformuiv(GLcharARB* varname, GLuint* values, GLint index)
     else
        loc = index;
 
-    if (loc==-1) 
+    if (loc==-1)
        return;  // can't find variable / invalid index
-	
+
 	glGetUniformuivEXT(ProgramObject, loc, values);
 
 }
@@ -1360,7 +1360,7 @@ unsigned long getFileLength(ifstream& file)
 
 
 //----------------------------------------------------------------------------- 
-int glShaderObject::load(char* filename)
+int glShaderObject::load(const char* filename)
 {
    ifstream file;
 	file.open(filename, ios::in);
@@ -1413,7 +1413,7 @@ void glShaderObject::loadFromMemory(const char* program)
 
 // ----------------------------------------------------------------------------
 // Compiler Log: Ausgabe der Compiler Meldungen in String
-char* glShaderObject::getCompilerLog(void)
+const char* glShaderObject::getCompilerLog(void)
 {    
 if (!useGLSL) return aGLSLStrings[0];
  
@@ -1578,7 +1578,7 @@ void glShaderManager::SetVerticesOut(int nVerticesOut)
 }
 
 // ----------------------------------------------------------------------------
-glShader* glShaderManager::loadfromFile(char* vertexFile, char* fragmentFile) 
+glShader* glShaderManager::loadfromFile(const char* vertexFile, const char* fragmentFile)
 {
 	// Shader logs
 	ofstream vertexLogFile;
@@ -1688,7 +1688,7 @@ glShader* glShaderManager::loadfromFile(char* vertexFile, char* fragmentFile)
 }
 
 
-glShader* glShaderManager::loadfromFile(char* vertexFile, char* geometryFile, char* fragmentFile)
+glShader* glShaderManager::loadfromFile(const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
    glShader* o = new glShader();
    o->UsesGeometryShader(true);

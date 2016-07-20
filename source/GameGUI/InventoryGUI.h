@@ -95,7 +95,7 @@ public:
 	void EquipItem(InventoryItem* pInventoryItem, int inventoryX, int inventoryY);
 	void EquipItem(LootSlotItem* pLootItem);
 	void EquipItem(InventorySlotItem* pInventoryItem);
-	void UnequipItem(EquipSlot equipSlot);
+	void UnequipItem(EquipSlot equipSlot, bool left, bool right);
 
 	void Update(float dt);
 

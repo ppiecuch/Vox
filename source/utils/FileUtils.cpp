@@ -37,7 +37,7 @@ string wchar_t2string(const wchar_t *wchar)
 
 wchar_t *string2wchar_t(const string &str)
 {
-	wchar_t wchar[260];
+	static wchar_t wchar[260];
 	unsigned int index = 0;
 	while(index < str.size())
 	{

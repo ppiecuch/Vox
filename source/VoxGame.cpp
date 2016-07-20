@@ -19,6 +19,10 @@
 # include <sys/time.h>
 #endif //__linux__ || __APPLE__
 
+const bool VoxGame::STEAM_BUILD = true;
+
+
+extern string g_soundEffectFilenames[eSoundEffect_NUM];
 
 // Initialize the singleton instance
 VoxGame *VoxGame::c_instance = 0;
@@ -75,11 +79,21 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_pickedObject = -1;
 	m_bNamePickingSelected = false;
 
+	/* Custom cursors */
+	m_bPressedCursorDown = false;
+	m_bCustomCursorOn = false;
+
 	/* Paper doll viewport dimensions */
 	m_paperdollViewportX = 0;
 	m_paperdollViewportY = 0;
 	m_paperdollViewportWidth = 800;
 	m_paperdollViewportHeight = 800;
+
+	/* Portrain viewport dimensions */
+	m_portraitViewportX = 0;
+	m_portraitViewportY = 0;
+	m_portraitViewportWidth = 800;
+	m_portraitViewportHeight = 800;
 
 	/* Setup the initial starting wait timing */
 	m_initialWaitTimer = 0.0f;
@@ -98,6 +112,14 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	/* Interactions */
 	m_pInteractItem = NULL;
 
+	/* Biome */
+	m_currentBiome = Biome_None;
+
+	/* Music and Audio */
+	m_pMusicChannel = NULL;
+	m_pMusicSound = NULL;
+	m_currentBiomeMusic = Biome_None;
+
 	/* Create the GUI */
 	m_pGUI = new OpenGLGUI(m_pRenderer);
 
@@ -113,9 +135,17 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_pRenderer->CreateViewport(0, 0, m_windowWidth, m_windowHeight, 60.0f, &m_defaultViewport);
 	m_pRenderer->CreateViewport(0, 0, m_windowWidth, m_windowHeight, 60.0f, &m_firstpersonViewport);
 	m_pRenderer->CreateViewport(m_paperdollViewportY, m_paperdollViewportX, m_paperdollViewportWidth, m_paperdollViewportHeight, 60.0f, &m_paperdollViewport);
+	m_pRenderer->CreateViewport(m_portraitViewportY, m_portraitViewportX, m_portraitViewportWidth, m_portraitViewportHeight, 60.0f, &m_portraitViewport);
 
 	/* Create fonts */
 	m_pRenderer->CreateFreeTypeFont("media/fonts/arial.ttf", 12, &m_defaultFont);
+
+	/* Create the custom cursor textures */
+	int lTextureWidth, lTextureHeight, lTextureWidth2, lTextureHeight2;
+	m_pRenderer->LoadTexture("media/textures/cursors/finger_cursor_normal.tga", &lTextureWidth, &lTextureHeight, &lTextureWidth2, &lTextureHeight2, &m_customCursorNormalBuffer);
+	m_pRenderer->LoadTexture("media/textures/cursors/finger_cursor_clicked.tga", &lTextureWidth, &lTextureHeight, &lTextureWidth2, &lTextureHeight2, &m_customCursorClickedBuffer);
+	m_pRenderer->LoadTexture("media/textures/cursors/finger_cursor_rotate.tga", &lTextureWidth, &lTextureHeight, &lTextureWidth2, &lTextureHeight2, &m_customCursorRotateBuffer);
+	m_pRenderer->LoadTexture("media/textures/cursors/finger_cursor_zoom.tga", &lTextureWidth, &lTextureHeight, &lTextureWidth2, &lTextureHeight2, &m_customCursorZoomBuffer);
 
 	/* Create lights */
 	m_defaultLightPosition = vec3(300.0f, 300.0f, 300.0f);
@@ -133,11 +163,14 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 5.0f, "Shadow", &m_shadowFrameBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Deferred Lighting", &m_lightingFrameBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Transparency", &m_transparencyFrameBuffer);
+	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Water Reflection", &m_waterReflectionFrameBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FXAA", &m_FXAAFrameBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FullScreen 1st Pass", &m_firstPassFullscreenBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FullScreen 2nd Pass", &m_secondPassFullscreenBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, 800, 800, 1.0f, "Paperdoll", &m_paperdollBuffer);
 	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, 800, 800, 1.0f, "Paperdoll SSAO Texture", &m_paperdollSSAOTextureBuffer);
+	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, 800, 800, 1.0f, "Portrait", &m_portraitBuffer);
+	frameBufferCreated = m_pRenderer->CreateFrameBuffer(-1, true, true, true, true, 800, 800, 1.0f, "Portrait SSAO Texture", &m_portraitSSAOTextureBuffer);
 
 	/* Create the shaders */
 	bool shaderLoaded = false;
@@ -145,6 +178,7 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_phongShader = -1;
 	m_SSAOShader = -1;
 	m_shadowShader = -1;
+	m_waterShader = -1;
 	m_lightingShader = -1;
 	m_cubeMapShader = -1;
 	m_textureShader = -1;
@@ -155,6 +189,7 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/default.vertex", "media/shaders/default.pixel", &m_defaultShader);
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/phong.vertex", "media/shaders/phong.pixel", &m_phongShader);
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/shadow.vertex", "media/shaders/shadow.pixel", &m_shadowShader);
+	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/water_still.vertex", "media/shaders/water_still.pixel", &m_waterShader);
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/texture.vertex", "media/shaders/texture.pixel", &m_textureShader);
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/fullscreen/SSAO.vertex", "media/shaders/fullscreen/SSAO.pixel", &m_SSAOShader);
 	shaderLoaded = m_pRenderer->LoadGLSLShader("media/shaders/fullscreen/fxaa.vertex", "media/shaders/fullscreen/fxaa.pixel", &m_fxaaShader);
@@ -167,6 +202,9 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	/* Create the mods manager */
 	m_pModsManager = new ModsManager();
 	m_pModsManager->LoadMods();
+
+	/* Create the audio manager */
+	AudioManager::GetInstance()->Setup();
 
 	/* Create the qubicle binary file manager */
 	m_pQubicleBinaryManager = new QubicleBinaryManager(m_pRenderer);
@@ -218,6 +256,9 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	/* Create the item manager */
 	m_pItemManager = new ItemManager(m_pRenderer, m_pChunkManager, m_pPlayer);
 
+	/* Create the random loot manager */
+	m_pRandomLootManager = new RandomLootManager();
+
 	/* Create the projectile manager */
 	m_pProjectileManager = new ProjectileManager(m_pRenderer, m_pChunkManager);
 
@@ -242,6 +283,7 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_pChunkManager->SetEnemyManager(m_pEnemyManager);
 	m_pChunkManager->SetNPCManager(m_pNPCManager);
 	m_pChunkManager->SetBlockParticleManager(m_pBlockParticleManager);
+	m_pChunkManager->SetItemManager(m_pItemManager);
 	m_pPlayer->SetInventoryManager(m_pInventoryManager);
 	m_pPlayer->SetItemManager(m_pItemManager);
 	m_pPlayer->SetProjectileManager(m_pProjectileManager);
@@ -276,6 +318,7 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_pItemManager->SetBlockParticleManager(m_pBlockParticleManager);
 	m_pItemManager->SetQubicleBinaryManager(m_pQubicleBinaryManager);
 	m_pItemManager->SetInventoryManager(m_pInventoryManager);
+	m_pItemManager->SetNPCManager(m_pNPCManager);
 	m_pProjectileManager->SetLightingManager(m_pLightingManager);
 	m_pProjectileManager->SetBlockParticleManager(m_pBlockParticleManager);
 	m_pProjectileManager->SetPlayer(m_pPlayer);
@@ -302,9 +345,6 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_pHUD->SetCharacterGUI(m_pCharacterGUI);
 	m_pHUD->SetQuestGUI(m_pQuestGUI);
 	m_pHUD->SetCraftingGUI(m_pCraftingGUI);
-
-	/* Initial chunk creation (Must be after player pointer sent to chunks) */
-	m_pChunkManager->InitializeChunkCreation();
 
 	// Keyboard movement
 	m_bKeyboardForward = false;
@@ -364,6 +404,9 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	// Cinematic letterbox mode
 	m_letterBoxRatio = 0.0f;
 
+	// Water
+	m_elapsedWaterTime = 0.0f;
+
 	// Paperdoll rendering
 	m_paperdollRenderRotation = 0.0f;
 
@@ -374,7 +417,6 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_multiSampling = true;
 	m_ssao = true;
 	m_blur = false;
-	m_shadows = true;
 	m_dynamicLighting = true;
 	m_animationUpdate = true;
 	m_fullscreen = m_pVoxSettings->m_fullscreen;
@@ -392,10 +434,17 @@ void VoxGame::Create(VoxSettings* pVoxSettings)
 	m_allowToChangeToFrontend = true;
 	SetGameMode(m_gameMode);
 
+	// Turn the cursor initially off if we have custom cursors enabled
+	if (m_pVoxSettings->m_customCursors)
+	{
+		TurnCursorOff(true);
+	}
+
 	// Create, setup and skin the GUI components
 	CreateGUI();
 	SetupGUI();
 	SkinGUI();
+	UpdateGUI(0.0f);
 }
 
 // Destruction
@@ -406,7 +455,9 @@ void VoxGame::Destroy()
 		delete m_pSkybox;
 		delete m_pChunkManager;
 		delete m_pItemManager;
+		delete m_pRandomLootManager;
 		delete m_pInventoryManager;
+		delete m_pFrontendManager;
 		delete m_pPlayer;
 		delete m_pNPCManager;
 		delete m_pEnemyManager;
@@ -417,7 +468,6 @@ void VoxGame::Destroy()
 		delete m_pInstanceManager;
 		delete m_pBiomeManager;
 		delete m_pQubicleBinaryManager;
-		delete m_pFrontendManager;
 		delete m_pModsManager;
 		delete m_pGameCamera;
 		delete m_pQuestManager;
@@ -431,6 +481,8 @@ void VoxGame::Destroy()
 		DestroyGUI();  // Destroy the GUI components before we delete the GUI manager object.
 		delete m_pGUI;
 		delete m_pRenderer;
+
+		AudioManager::GetInstance()->Shutdown();
 
 		m_pVoxWindow->Destroy();
 
@@ -449,20 +501,23 @@ void VoxGame::CancelQuitPopup()
 
 	SetGlobalBlurAmount(0.0f);
 
-	TurnCursorOff();
+	TurnCursorOff(false);
 }
 
 void VoxGame::ShowQuitPopup()
 {
-	CloseAllGUIWindows();
+	if (m_pFrontendManager->GetFrontendScreen() != FrontendScreen_QuitPopup)
+	{
+		CloseAllGUIWindows();
 
-	m_pFrontendManager->SetFrontendScreen(FrontendScreen_QuitPopup);
+		m_pFrontendManager->SetFrontendScreen(FrontendScreen_QuitPopup);
 
-	SetPaused(true);
+		SetPaused(true);
 
-	SetGlobalBlurAmount(0.0015f);
+		SetGlobalBlurAmount(0.0015f);
 
-	TurnCursorOn(true);
+		TurnCursorOn(false, false);
+	}
 }
 
 void VoxGame::SetGameQuit(bool quit)
@@ -489,7 +544,7 @@ void VoxGame::SetPauseMenu()
 
 	SetGlobalBlurAmount(0.0015f);
 
-	TurnCursorOn(true);
+	TurnCursorOn(true, false);
 }
 
 void VoxGame::UnsetPauseMenu()
@@ -500,7 +555,7 @@ void VoxGame::UnsetPauseMenu()
 
 	SetGlobalBlurAmount(0.0f);
 
-	TurnCursorOff();
+	TurnCursorOff(false);
 }
 
 // Blur
@@ -537,6 +592,12 @@ unsigned int VoxGame::GetDynamicPaperdollTexture()
 	return m_pRenderer->GetDiffuseTextureFromFrameBuffer(m_paperdollSSAOTextureBuffer);
 }
 
+// Portrait
+unsigned int VoxGame::GetDynamicPortraitTexture()
+{
+	return m_pRenderer->GetDiffuseTextureFromFrameBuffer(m_portraitSSAOTextureBuffer);
+}
+
 // Events
 void VoxGame::PollEvents()
 {
@@ -559,6 +620,37 @@ int VoxGame::GetWindowCursorY()
 	return m_pVoxWindow->GetCursorY();
 }
 
+
+void VoxGame::TurnCursorOn(bool resetCursorPosition, bool forceOn)
+{
+	m_pVoxWindow->TurnCursorOn(resetCursorPosition, forceOn);
+
+	m_bCustomCursorOn = true;
+}
+
+void VoxGame::TurnCursorOff(bool forceOff)
+{
+	m_pVoxWindow->TurnCursorOff(forceOff);
+
+	m_bCustomCursorOn = false;
+
+	// Make sure to set the current X and Y when we turn the cursor off, so that camera controls don't glitch.
+	m_currentX = m_pVoxWindow->GetCursorX();
+	m_currentY = m_pVoxWindow->GetCursorY();
+}
+
+bool VoxGame::IsCursorOn()
+{
+	if (m_pVoxSettings->m_customCursors)
+	{
+		return m_bCustomCursorOn;
+	}
+	else
+	{
+		return m_pVoxWindow->IsCursorOn();
+	}
+}
+
 void VoxGame::ResizeWindow(int width, int height)
 {
 	m_windowWidth = width;
@@ -575,6 +667,7 @@ void VoxGame::ResizeWindow(int width, int height)
 		m_pRenderer->ResizeViewport(m_defaultViewport, 0, 0, m_windowWidth, m_windowHeight, 60.0f);
 		m_pRenderer->ResizeViewport(m_firstpersonViewport, 0, 0, m_windowWidth, m_windowHeight, 60.0f);
 		m_pRenderer->ResizeViewport(m_paperdollViewport, m_paperdollViewportY, m_paperdollViewportX, m_paperdollViewportWidth, m_paperdollViewportHeight, 60.0f);
+		m_pRenderer->ResizeViewport(m_portraitViewport, m_portraitViewportY, m_portraitViewportX, m_portraitViewportWidth, m_portraitViewportHeight, 60.0f);
 
 		// Resize the frame buffers
 		bool frameBufferResize = false;
@@ -582,12 +675,15 @@ void VoxGame::ResizeWindow(int width, int height)
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_shadowFrameBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 5.0f, "Shadow", &m_shadowFrameBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_lightingFrameBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Deferred Lighting", &m_lightingFrameBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_transparencyFrameBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Transparency", &m_transparencyFrameBuffer);
+		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_waterReflectionFrameBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "Water Reflection", &m_waterReflectionFrameBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_FXAAFrameBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FXAA", &m_FXAAFrameBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_firstPassFullscreenBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FullScreen 1st Pass", &m_firstPassFullscreenBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_secondPassFullscreenBuffer, true, true, true, true, m_windowWidth, m_windowHeight, 1.0f, "FullScreen 2nd Pass", &m_secondPassFullscreenBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_paperdollBuffer, true, true, true, true, 800, 800, 1.0f, "Paperdoll", &m_paperdollBuffer);
 		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_paperdollSSAOTextureBuffer, true, true, true, true, 800, 800, 1.0f, "Paperdoll SSAO Texture", &m_paperdollSSAOTextureBuffer);
-		
+		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_portraitBuffer, true, true, true, true, 800, 800, 1.0f, "Portrait", &m_portraitBuffer);
+		frameBufferResize = m_pRenderer->CreateFrameBuffer(m_portraitSSAOTextureBuffer, true, true, true, true, 800, 800, 1.0f, "Portrait SSAO Texture", &m_portraitSSAOTextureBuffer);
+
 		// Give the new windows dimensions to the GUI components also
 		m_pMainWindow->SetApplicationDimensions(m_windowWidth, m_windowHeight);
 		m_pGameWindow->SetApplicationDimensions(m_windowWidth, m_windowHeight);
@@ -644,10 +740,114 @@ void VoxGame::UpdateJoySticks()
 	m_pVoxWindow->UpdateJoySticks();
 }
 
+// Music
+void VoxGame::StartFrontEndMusic()
+{
+	string musicModName = VoxGame::GetInstance()->GetModsManager()->GetSoundPack();
+	string musicFileName = "media/audio/" + musicModName + "/music/vox_intro.ogg";
+	m_pMusicSound = AudioManager::GetInstance()->PlaySound2D(&m_pMusicChannel, musicFileName.c_str(), true, true);
+
+	UpdateMusicVolume(0.0f);
+}
+
+void VoxGame::StartGameMusic()
+{
+	Biome currentBiome = m_pBiomeManager->GetBiome(m_pPlayer->GetCenter());
+	m_currentBiomeMusic = currentBiome;
+
+	string biomeFileName = "";
+	switch (m_currentBiomeMusic)
+	{
+		case Biome_None:		{ break; }
+		case Biome_GrassLand:	{ biomeFileName = "biome_plains.ogg"; break; }
+		case Biome_Desert:		{ biomeFileName = "biome_desert.ogg"; break; }
+		//case Biome_Jungle:	{ biomeFileName = "biome_jungle.ogg";break; }
+		case Biome_Tundra:		{ biomeFileName = "biome_snow.ogg"; break; }
+		//case Biome_Swamp:		{ biomeFileName = "";break; }
+		case Biome_AshLand:		{ biomeFileName = "biome_nightmare.ogg"; break; }
+		//case Biome_Nightmare:	{ biomeFileName = "";break; }
+	}
+
+	string musicModName = VoxGame::GetInstance()->GetModsManager()->GetSoundPack();
+	string musicFileName = "media/audio/" + musicModName + "/music/" + biomeFileName;
+	m_pMusicSound = AudioManager::GetInstance()->PlaySound2D(&m_pMusicChannel, musicFileName.c_str(), true, true);
+
+	UpdateMusicVolume(0.0f);
+}
+
+void VoxGame::StopMusic()
+{
+	// Stop the music
+	AudioManager::GetInstance()->StopSound(m_pMusicChannel);
+
+	m_pMusicChannel = NULL;
+	m_pMusicSound = NULL;
+}
+
+void VoxGame::UpdateGameMusic(float dt)
+{
+	Biome currentBiome = m_pBiomeManager->GetBiome(m_pPlayer->GetCenter());
+
+	if (currentBiome != m_currentBiomeMusic)
+	{
+		StopMusic();
+		StartGameMusic();
+	}
+}
+
+void VoxGame::UpdateMusicVolume(float dt)
+{
+	if (m_pVoxSettings->m_music)
+	{
+		if (m_pMusicChannel != NULL)
+		{
+			m_pMusicChannel->setVolume(0.125f * m_pVoxSettings->m_musicVolume);
+		}
+	}
+	else
+	{
+		if (m_pMusicChannel != NULL)
+		{
+			m_pMusicChannel->setVolume(0.0f);
+		}
+	}
+}
+
+// Sounds
+void VoxGame::PlaySoundEffect(eSoundEffect soundEffect, float soundEnhanceMultiplier)
+{
+	if (m_pVoxSettings->m_audio)
+	{
+		string soundModName = VoxGame::GetInstance()->GetModsManager()->GetSoundPack();
+		string soundeffectFilename = g_soundEffectFilenames[soundEffect];
+		string soundFileName = "media/audio/" + soundModName + "/soundeffects/" + soundeffectFilename;
+
+		FMOD::Channel* pSoundChannel;
+		FMOD::Sound* pSound;
+		pSound = AudioManager::GetInstance()->PlaySound2D(&pSoundChannel, soundFileName.c_str(), false);
+		pSoundChannel->setVolume(soundEnhanceMultiplier * m_pVoxSettings->m_audioVolume);
+	}
+}
+
+void VoxGame::PlaySoundEffect3D(eSoundEffect soundEffect, vec3 soundPosition, float soundEnhanceMultiplier)
+{
+	if (m_pVoxSettings->m_audio)
+	{
+		string soundModName = VoxGame::GetInstance()->GetModsManager()->GetSoundPack();
+		string soundeffectFilename = g_soundEffectFilenames[soundEffect];
+		string soundFileName = "media/audio/" + soundModName + "/soundeffects/" + soundeffectFilename;
+
+		FMOD::Channel* pSoundChannel;
+		FMOD::Sound* pSound;
+		pSound = AudioManager::GetInstance()->PlaySound3D(&pSoundChannel, soundFileName.c_str(), soundPosition, false);
+		pSoundChannel->setVolume(3.0f * soundEnhanceMultiplier * m_pVoxSettings->m_audioVolume);
+	}
+}
+
 // Game functions
 void VoxGame::QuitToFrontEnd()
 {
-	TurnCursorOn(true);
+	TurnCursorOn(true, false);
 	SetGameMode(GameMode_FrontEnd);
 
 	m_pFrontEndOptionBox->SetToggled(true);
@@ -669,20 +869,108 @@ void VoxGame::QuitToFrontEnd()
 
 void VoxGame::SetupDataForGame()
 {
+	// Initial player startup position and rotation
+	vec3 starPosition = vec3(10.0f, 8.0f, 23.0f);
+	m_pPlayer->SetPosition(starPosition);
+	m_pPlayer->SetRespawnPosition(starPosition + vec3(0.0f, 0.1f, 0.0f));
+	m_pPlayer->SetRotation(90.0f);
+
 	// Items
-	Item* pFurnace = m_pItemManager->CreateItem(vec3(25.0f, 10.0f, -5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), "media/gamedata/items/Furnace/Furnace.item", eItem_Furnace, "Furnace", true, false, 0.16f);
+	Item* pFurnace = m_pItemManager->CreateItem(vec3(25.0f, 10.0f, 29.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), "media/gamedata/items/Furnace/Furnace.item", eItem_Furnace, "Furnace", true, false, 0.16f);
 	pFurnace->SetInteractionPositionOffset(vec3(0.0f, 0.0f, -2.0f));
-	Item* pAnvil = m_pItemManager->CreateItem(vec3(32.0f, 9.0f, -1.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), "media/gamedata/items/Anvil/Anvil.item", eItem_Anvil, "Anvil", true, false, 0.14f);
+	Item* pAnvil = m_pItemManager->CreateItem(vec3(32.0f, 9.0f, 26.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), "media/gamedata/items/Anvil/Anvil.item", eItem_Anvil, "Anvil", true, false, 0.14f);
 	pAnvil->SetInteractionPositionOffset(vec3(0.0f, 0.0f, -1.5f));
-	Item* pChest = m_pItemManager->CreateItem(vec3(24.0f, 12.0f, 13.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 180.0f, 0.0f), "media/gamedata/items/Chest/Chest.item", eItem_Chest, "Chest", true, false, 0.08f);
+	
+	// Chest with random loot item
+	Item* pChest = m_pItemManager->CreateItem(vec3(17.0f, 12.0f, 28.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), "media/gamedata/items/Chest/Chest.item", eItem_Chest, "Chest", true, false, 0.08f);
+	eEquipment equipment = eEquipment_None;
+	InventoryItem* pRandomLoot = VoxGame::GetInstance()->GetRandomLootManager()->GetRandomLootItem(&equipment);
+	if (pRandomLoot != NULL && equipment != eEquipment_None)
+	{
+		InventoryItem* pRandomLootItem = pChest->AddLootItem(pRandomLoot, 0, 2);
+		pRandomLootItem->m_scale = pRandomLoot->m_scale;
+		pRandomLootItem->m_offsetX = pRandomLoot->m_offsetX;
+		pRandomLootItem->m_offsetY = pRandomLoot->m_offsetY;
+		pRandomLootItem->m_offsetZ = pRandomLoot->m_offsetZ;
+		pRandomLootItem->m_left = pRandomLoot->m_left;
+		pRandomLootItem->m_right = pRandomLoot->m_right;
+	}
+
+	// Item spawners
+	ItemSpawner* pItemSpawner1 = m_pItemManager->CreateItemSpawner(vec3(0.0f, 6.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pItemSpawner1->SetSpawningParams(0.0f, 0.0f, 15, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 0.5f, 0.0f), true, true, 25.0f, Biome_GrassLand, 0.15f);
+	pItemSpawner1->AddItemTypeToSpawn(eItem_CopperVein);
+	pItemSpawner1->AddItemTypeToSpawn(eItem_IronVein);
+
+	ItemSpawner* pItemSpawner2 = m_pItemManager->CreateItemSpawner(vec3(0.0f, 6.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pItemSpawner2->SetSpawningParams(0.0f, 0.0f, 15, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 0.5f, 0.0f), true, true, 25.0f, Biome_AshLand, 0.15f);
+	pItemSpawner2->AddItemTypeToSpawn(eItem_SilverVein);
+	pItemSpawner2->AddItemTypeToSpawn(eItem_GoldVein);
+
+	ItemSpawner* pItemSpawner3 = m_pItemManager->CreateItemSpawner(vec3(0.0f, 6.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pItemSpawner3->SetSpawningParams(0.0f, 0.0f, 3, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 0.5f, 0.0f), true, true, 25.0f, Biome_GrassLand, 0.08f);
+	pItemSpawner3->AddItemTypeToSpawn(eItem_Chest);
 
 	// Npcs
-	NPC* pCharacter1 = m_pNPCManager->CreateNPC("Mage", "Human", "Mage", vec3(21.0f, 8.5f, 20.0f), 0.08f, false, true);
+	NPC* pCharacter1 = m_pNPCManager->CreateNPC("Mage", "Human", "Mage", vec3(21.0f, 8.5f, 25.0f), 0.08f, false, true);
+	pCharacter1->SetForwards(vec3(0.0f, 0.0f, -1.0f));
 	pCharacter1->SetTargetForwards(vec3(0.0f, 0.0f, -1.0f));
 	pCharacter1->SetNPCCombatType(eNPCCombatType_Staff, true);
 
+	// Safezones (Where we cannot spawn enemies)
+	m_pBiomeManager->AddSafeZone(vec3(21.0f, 8.5f, 20.0f), 25.f, 30.0f, 25.0f);
+	m_pBiomeManager->AddTown(vec3(8.0f, 8.0f, 8.0f), 75.f, 15.0f, 75.0f);
+
 	// Enemies
-	Enemy* pEnemy0 = m_pEnemyManager->CreateEnemy(vec3(35.5f, 12.0f, 5.5f), eEnemyType_RedSlime, 0.08f);
+	//Enemy* pEnemy0 = m_pEnemyManager->CreateEnemy(vec3(35.5f, 12.0f, 5.5f), eEnemyType_RedSlime, 0.08f);
+
+	// Enemy spawners
+	// Grassland
+	EnemySpawner* pEnemySpawner0 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 4.0f, 0.0f), vec3(0.0f, 0.0f, 5.0f));
+	pEnemySpawner0->SetSpawningParams(3.0f, 3.0f, 8, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 1.0f, 0.0f), true, true, 25.0f, Biome_GrassLand);
+	pEnemySpawner0->AddEnemyTypeToSpawn(eEnemyType_GreenSlime);
+	pEnemySpawner0->AddEnemyTypeToSpawn(eEnemyType_RedSlime);
+	//pEnemySpawner0->AddEnemyTypeToSpawn(eEnemyType_BlueSlime);
+	pEnemySpawner0->AddEnemyTypeToSpawn(eEnemyType_YellowSlime);
+
+	EnemySpawner* pEnemySpawner1 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 6.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pEnemySpawner1->SetSpawningParams(5.0f, 3.5f, 3, vec3(0.0f, 5.0f, 0.0f), true, vec3(0.0f, 5.0f, 0.0f), true, true, 25.0f, Biome_GrassLand);
+	pEnemySpawner1->AddEnemyTypeToSpawn(eEnemyType_Bee);
+
+	EnemySpawner* pEnemySpawner2 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 8.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pEnemySpawner2->SetSpawningParams(0.0f, 1.0f, 3, vec3(0.0f, 5.0f, 0.0f), true, vec3(0.0f, 0.0f, 0.0f), true, true, 25.0f, Biome_GrassLand);
+	pEnemySpawner2->AddEnemyTypeToSpawn(eEnemyType_Mimic);
+
+	// Desert
+	EnemySpawner* pEnemySpawner3 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 10.0f, 0.0f), vec3(0.0f, 0.0f, 5.0f));
+	pEnemySpawner3->SetSpawningParams(3.0f, 3.0f, 8, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 1.0f, 0.0f), true, true, 25.0f, Biome_Desert);
+	pEnemySpawner3->AddEnemyTypeToSpawn(eEnemyType_NormalSkeleton);
+	pEnemySpawner3->AddEnemyTypeToSpawn(eEnemyType_RangedSkeleton);
+	pEnemySpawner3->AddEnemyTypeToSpawn(eEnemyType_MeleeSkeleton);
+	pEnemySpawner3->AddEnemyTypeToSpawn(eEnemyType_MageSkeleton);
+
+	EnemySpawner* pEnemySpawner4 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 12.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pEnemySpawner4->SetSpawningParams(0.0f, 1.0f, 4, vec3(0.0f, 5.0f, 0.0f), true, vec3(0.0f, 0.0f, 0.0f), true, true, 25.0f, Biome_Desert);
+	pEnemySpawner4->AddEnemyTypeToSpawn(eEnemyType_Mummy);
+
+	// Ashlands
+	EnemySpawner* pEnemySpawner5 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 10.0f, 0.0f), vec3(0.0f, 0.0f, 5.0f));
+	pEnemySpawner5->SetSpawningParams(3.0f, 3.0f, 15, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 1.0f, 0.0f), true, true, 25.0f, Biome_AshLand);
+	pEnemySpawner5->AddEnemyTypeToSpawn(eEnemyType_WalkingZombie);
+	pEnemySpawner5->AddEnemyTypeToSpawn(eEnemyType_CrawlingZombie);
+
+	EnemySpawner* pEnemySpawner6 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 12.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pEnemySpawner6->SetSpawningParams(0.0f, 1.0f, 4, vec3(0.0f, 5.0f, 0.0f), true, vec3(0.0f, 0.0f, 0.0f), true, true, 25.0f, Biome_AshLand);
+	pEnemySpawner6->AddEnemyTypeToSpawn(eEnemyType_IronGiant);
+
+	EnemySpawner* pEnemySpawner7 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 12.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+	pEnemySpawner7->SetSpawningParams(0.0f, 1.0f, 8, vec3(0.0f, 5.0f, 0.0f), true, vec3(0.0f, 5.0f, 0.0f), true, true, 25.0f, Biome_AshLand);
+	pEnemySpawner7->AddEnemyTypeToSpawn(eEnemyType_Bat);
+
+	// Tundra
+	EnemySpawner* pEnemySpawner8 = m_pEnemyManager->CreateEnemySpawner(vec3(0.0f, 4.0f, 0.0f), vec3(0.0f, 0.0f, 5.0f));
+	pEnemySpawner8->SetSpawningParams(3.0f, 3.0f, 8, vec3(0.0f, 0.0f, 0.0f), true, vec3(0.0f, 1.0f, 0.0f), true, true, 25.0f, Biome_Tundra);
+	pEnemySpawner8->AddEnemyTypeToSpawn(eEnemyType_BlueSlime);
 
 	// Quests
 	// Quest 1
@@ -691,7 +979,7 @@ void VoxGame::SetupDataForGame()
 	string denyText1 = "You are already on a quest, come back to me once you have finished.";
 	Quest* pSlimeQuest = m_pQuestManager->CreateQuest("A Simple Task", startText1, completedText1, denyText1);
 	pSlimeQuest->AddQuestObjective("Kill 5 Slimes", QuestType_KillX, 5, eEnemyType_GreenSlime, eItem_None, NULL, "", NULL);
-	InventoryItem* pQuestReward1 = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/Sword/Sword.weapon", "media/textures/items/sword.tga", InventoryType_Weapon_Sword, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Sword", "Attacking enemies.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
+	InventoryItem* pQuestReward1 = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronSword);
 	pSlimeQuest->SetQuestReward(pQuestReward1);
 	pSlimeQuest->ExportQuest();
 	// Quest 2
@@ -700,16 +988,26 @@ void VoxGame::SetupDataForGame()
 	string denyText2 = "You are already on a quest, come back to me once you have finished.";
 	Quest* pCollectQuest = m_pQuestManager->CreateQuest("A Simple Collection", startText2, completedText2, denyText2);
 	pCollectQuest->AddQuestObjective("Collect 5 Copper Nuggets", QuestType_CollectX, 5, eEnemyType_None, eItem_CopperOre, NULL, "", NULL);
-	InventoryItem* pQuestReward2 = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/CopperOre/CopperOre.item", "media/textures/items/copper_ore.tga", InventoryType_Item, eItem_CopperOre, ItemStatus_None, EquipSlot_LeftHand, ItemQuality_Common, false, false, "Copper Nugget", "", 1.0f, 1.0f, 1.0f, 5, -1, -1, -1, -1);
+	InventoryItem* pQuestReward2 = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_CopperOre, 5, ItemQuality_Common);
 	pCollectQuest->SetQuestReward(pQuestReward2);
 	pCollectQuest->ExportQuest();
+	// Quest 3
+	string startText3 = "My dearest [C=Yellow]Moxie[C=White] is lost and I can't find her. I have looked everywhere, but she is nowhere to be found...\n\nCan you lend me your assistance and help locate my dearest [C=Yellow]Moxie[C=White]? I dont know where she could be, but the last time I saw her she was playing around by [C=Custom(00A2E8)]Joseph Maclure's Barnyard[C=White].\n\nIf you can help find [C=Yellow]Moxie[C=White] for me I will reward you handsomely.";
+	string completedText3 = "You have found Moxie? Thank you so much kind stranger!";
+	string denyText3 = "You are already on a quest, come back to me once you have finished.";
+	Quest* pFindQuest = m_pQuestManager->CreateQuest("Find Moxie", startText3, completedText3, denyText3);
+	pFindQuest->ExportQuest();
 
 	m_pQuestJournal->AddQuestJournalEntry(pSlimeQuest);
 	m_pQuestJournal->AddQuestJournalEntry(pCollectQuest);
+	m_pQuestJournal->AddQuestJournalEntry(pFindQuest);
 }
 
 void VoxGame::SetupDataForFrontEnd()
 {
+	// Safezones (Where we cannot spawn enemies)
+	m_pBiomeManager->AddSafeZone(vec3(21.0f, 8.5f, 20.0f), 25.f, 30.0f, 25.0f);
+	m_pBiomeManager->AddTown(vec3(8.0f, 8.0f, 8.0f), 75.f, 15.0f, 75.0f);
 }
 
 void VoxGame::StartGameFromFrontEnd()
@@ -751,6 +1049,7 @@ void VoxGame::SetGameMode(GameMode mode)
 
 			// Clear the items
 			m_pItemManager->ClearItems();
+			m_pItemManager->ClearItemSpawners();
 
 			// Clear the NPCs
 			m_pNPCManager->ClearNPCs();
@@ -759,26 +1058,54 @@ void VoxGame::SetGameMode(GameMode mode)
 			m_pEnemyManager->ClearEnemies();
 			m_pEnemyManager->ClearEnemySpawners();
 
+			// Clear all projectiles
+			m_pProjectileManager->ClearProjectiles();
+
 			// Reset the inventory manager
 			m_pInventoryManager->Reset();
+
+			// Clear the quests
+			m_pQuestManager->ClearQuests();
+
+			// Clear the quest journal
+			m_pQuestJournal->ClearJournal();
+
+			// Reset the quest GUI text components
+			m_pQuestGUI->SetQuestData("", "");
 
 			// Reset the player
 			m_pPlayer->ResetPlayer();
 
+			// Set the water level
+			m_pChunkManager->SetWaterHeight(1.3f);
+
 			// Unload actionbar
 			if (m_pActionBar->IsLoaded())
 			{
-				m_pActionBar->Unload();
+				if (m_pVoxSettings->m_renderGUI)
+				{
+					m_pActionBar->Unload();
+				}
 			}
 
 			// Unload the HUD
 			if (m_pHUD->IsLoaded())
 			{
-				m_pHUD->Unload();
+				if (m_pVoxSettings->m_renderGUI)
+				{
+					m_pHUD->Unload();
+				}
 			}
 
 			// Setup the gamedata since we have just loaded fresh into the frontend.
 			SetupDataForFrontEnd();
+
+			// Music
+			StopMusic();
+			StartFrontEndMusic();
+
+			// Initial chunk creation
+			m_pChunkManager->InitializeChunkCreation();
 		}
 	}
 
@@ -791,6 +1118,7 @@ void VoxGame::SetGameMode(GameMode mode)
 
 			// Clear the items
 			m_pItemManager->ClearItems();
+			m_pItemManager->ClearItemSpawners();
 
 			// Clear the NPCs
 			m_pNPCManager->ClearNPCs();
@@ -799,23 +1127,51 @@ void VoxGame::SetGameMode(GameMode mode)
 			m_pEnemyManager->ClearEnemies();
 			m_pEnemyManager->ClearEnemySpawners();
 
+			// Clear all projectiles
+			m_pProjectileManager->ClearProjectiles();
+
+			// Clear the quests
+			m_pQuestManager->ClearQuests();
+
+			// Clear the quest journal
+			m_pQuestJournal->ClearJournal();
+
+			// Reset the quest GUI text components
+			m_pQuestGUI->SetQuestData("", "");
+
 			// Reset the player
 			m_pPlayer->ResetPlayer();
+
+			// Set the water level
+			m_pChunkManager->SetWaterHeight(1.3f);
 
 			// Load action bar
 			if (m_pActionBar->IsLoaded() == false)
 			{
-				m_pActionBar->Load();
+				if (m_pVoxSettings->m_renderGUI)
+				{
+					m_pActionBar->Load();
+				}
 			}
 
 			// Load the HUD
 			if (m_pHUD->IsLoaded() == false)
 			{
-				m_pHUD->Load();
+				if (m_pVoxSettings->m_renderGUI)
+				{
+					m_pHUD->Load();
+				}
 			}
 
 			// Setup the gamedata since we have just loaded fresh into a game.
 			SetupDataForGame();
+
+			// Music
+			StopMusic();
+			StartGameMusic();
+
+			// Initial chunk creation
+			m_pChunkManager->InitializeChunkCreation();
 		}
 	}
 }
@@ -867,8 +1223,7 @@ bool VoxGame::CheckInteractions()
 	m_interactItemMutex.lock();
 	if (interaction == false && m_pInteractItem != NULL)
 	{
-		// Stop any movement drag when we interact with item
-		m_movementSpeed = 0.0f;
+		bool shouldStopMovement = false;
 
 		// Dropped items become collectible by the player and magnet towards him
 		if (m_pInteractItem->GetItemType() == eItem_DroppedItem)
@@ -882,27 +1237,11 @@ bool VoxGame::CheckInteractions()
 			interaction = true;
 		}
 
-		// Open/close door
-		if (m_pInteractItem->GetItemType() == eItem_Door)
-		{
-			m_pInteractItem->Interact();
-
-			interaction = true;
-		}
-
-		// Sitting in chair
-		if (m_pInteractItem->GetItemType() == eItem_Chair)
-		{
-			m_pInteractItem->Interact();
-			m_pPlayer->StopMoving();
-
-			interaction = true;
-		}
-
 		// Crafting stations
 		if (m_pInteractItem->GetItemType() == eItem_Anvil || m_pInteractItem->GetItemType() == eItem_Furnace)
 		{
 			m_pPlayer->StopMoving();
+			shouldStopMovement = true;
 
 			// Load crafting GUI
 			if (m_pCraftingGUI->IsLoaded() == false)
@@ -913,7 +1252,7 @@ bool VoxGame::CheckInteractions()
 
 				SavePreviousCameraMode();
 				m_shouldRestorePreviousCameraMode = true;
-				TurnCursorOn(true);
+				TurnCursorOn(false, false);
 			}
 
 			// Set NPC dialog camera mode
@@ -963,6 +1302,9 @@ bool VoxGame::CheckInteractions()
 				if (m_pInteractItem->IsInteracting() == true) // Only open the GUI screens if we are opening a chest
 				{
 					m_pPlayer->StopMoving();
+					shouldStopMovement = true;
+
+					PlaySoundEffect(eSoundEffect_ChestOpen);
 
 					if (m_pLootGUI->IsLoaded())
 					{
@@ -970,7 +1312,7 @@ bool VoxGame::CheckInteractions()
 
 						if (IsGUIWindowStillDisplayed() == false)
 						{
-							TurnCursorOff();
+							TurnCursorOff(false);
 						}
 					}
 					else if (m_pFrontendManager->GetFrontendScreen() == FrontendScreen_None)
@@ -985,11 +1327,18 @@ bool VoxGame::CheckInteractions()
 						}
 
 						m_pPlayer->StopMoving();
+						shouldStopMovement = true;
 
-						TurnCursorOn(true);
+						TurnCursorOn(false, false);
 					}
 				}
 			}
+		}
+
+		if (shouldStopMovement == true)
+		{
+			// Stop any movement drag when we interact with item
+			m_movementSpeed = 0.0f;
 		}
 	}
 	m_interactItemMutex.unlock();
@@ -1118,18 +1467,25 @@ void VoxGame::CloseAllGUIWindows()
 	m_pGUI->ResetFocus();
 }
 
-void VoxGame::TurnCursorOn(bool resetCursorPosition)
+void VoxGame::CloseInteractionGUI()
 {
-	m_pVoxWindow->TurnCursorOn(resetCursorPosition);
-}
+	if (m_pCraftingGUI->IsLoaded())
+	{
+		m_pCraftingGUI->Unload();
 
-void VoxGame::TurnCursorOff()
-{
-	m_pVoxWindow->TurnCursorOff();
+		CloseLetterBox();
 
-	// Make sure to set the current X and Y when we turn the cursor off, so that camera controls don't glitch.
-	m_currentX = m_pVoxWindow->GetCursorX();
-	m_currentY = m_pVoxWindow->GetCursorY();
+		if (IsGUIWindowStillDisplayed() == false)
+		{
+			TurnCursorOff(false);
+		}
+
+		if (ShouldRestorePreviousCameraMode())
+		{
+			RestorePreviousCameraMode();
+			InitializeCameraRotation();
+		}
+	}
 }
 
 // Accessors
@@ -1138,9 +1494,24 @@ unsigned int VoxGame::GetDefaultViewport()
 	return m_defaultViewport;
 }
 
+Camera* VoxGame::GetGameCamera()
+{
+	return m_pGameCamera;
+}
+
 Player* VoxGame::GetPlayer()
 {
 	return m_pPlayer;
+}
+
+ChunkManager* VoxGame::GetChunkManager()
+{
+	return m_pChunkManager;
+}
+
+BiomeManager* VoxGame::GetBiomeManager()
+{
+	return m_pBiomeManager;
 }
 
 FrontendManager* VoxGame::GetFrontendManager()
@@ -1163,6 +1534,16 @@ ItemManager* VoxGame::GetItemManager()
 	return m_pItemManager;
 }
 
+InventoryManager* VoxGame::GetInventoryManager()
+{
+	return m_pInventoryManager;
+}
+
+RandomLootManager* VoxGame::GetRandomLootManager()
+{
+	return m_pRandomLootManager;
+}
+
 ModsManager* VoxGame::GetModsManager()
 {
 	return m_pModsManager;
@@ -1181,6 +1562,11 @@ QuestGUI* VoxGame::GetQuestGUI()
 HUD* VoxGame::GetHUD()
 {
 	return m_pHUD;
+}
+
+ActionBar* VoxGame::GetActionBar()
+{
+	return m_pActionBar;
 }
 
 VoxSettings* VoxGame::GetVoxSettings()

@@ -18,8 +18,8 @@
 
 #include "../Renderer/Renderer.h"
 #include "../models/QubicleBinary.h"
-
 #include "Chunk.h"
+#include "BlocksEnum.h"
 
 #include <map>
 using namespace std;
@@ -31,6 +31,7 @@ class Player;
 class NPCManager;
 class EnemyManager;
 class BlockParticleManager;
+class ItemManager;
 class SceneryManager;
 class VoxSettings;
 class QubicleBinaryManager;
@@ -127,6 +128,17 @@ public:
 
 typedef std::vector<ChunkStorageLoader*> ChunkStorageLoaderList;
 
+class BlockColourTypeMatch
+{
+public:
+	int m_red;
+	int m_green;
+	int m_blue;
+	BlockType m_blockType;
+};
+
+typedef std::vector<BlockColourTypeMatch*> BlockColourTypeMatchList;
+
 
 class ChunkManager
 {
@@ -140,6 +152,7 @@ public:
 	void SetNPCManager(NPCManager* pNPCManager);
 	void SetEnemyManager(EnemyManager* pEnemyManager);
 	void SetBlockParticleManager(BlockParticleManager* pBlockParticleManager);
+	void SetItemManager(ItemManager* pItemManager);
 
 	// Scenery manager pointer
 	void SetSceneryManager(SceneryManager* pSceneryManager);
@@ -184,10 +197,27 @@ public:
 	ChunkStorageLoader* GetChunkStorage(int aX, int aY, int aZ, bool CreateIfNotExist);
 	void RemoveChunkStorageLoader(ChunkStorageLoader* pChunkStorage);
 
+	// Block colour to block type matching
+	void AddBlockColourBlockTypeMatching(int r, int g, int b, BlockType blockType);
+	bool CheckBlockColour(int r, int g, int b, int rCheck, int gCheck, int bCheck);
+	BlockType SetBlockTypeBasedOnColour(int r, int g, int b);
+
 	// Importing into the world chunks
 	void ImportQubicleBinaryMatrix(QubicleMatrix* pMatrix, vec3 position, QubicleImportDirection direction);
 	QubicleBinary* ImportQubicleBinary(QubicleBinary* qubicleBinaryFile, vec3 position, QubicleImportDirection direction);
 	QubicleBinary* ImportQubicleBinary(const char* filename, vec3 position, QubicleImportDirection direction);
+
+	// Explosions
+	void CreateBlockDestroyParticleEffect(float r, float g, float b, float a, vec3 blockPosition);
+	void ExplodeSphere(vec3 position, float radius);
+
+	// Collectible block objects
+	void CreateCollectibleBlock(BlockType blockType, vec3 blockPos);
+
+	// Water
+	void SetWaterHeight(float height);
+	float GetWaterHeight();
+	bool IsUnderWater(vec3 position);
 
 	// Rendering modes
 	void SetWireframeRender(bool wireframe);
@@ -201,6 +231,7 @@ public:
 
 	// Rendering
 	void Render(bool shadowRender);
+	void RenderWater();
 	void RenderDebug();
 	void Render2D(Camera* pCamera, unsigned int viewport, unsigned int font);
 
@@ -224,6 +255,7 @@ private:
 	BiomeManager* m_pBiomeManager;
 	VoxSettings* m_pVoxSettings;
 	QubicleBinaryManager* m_pQubicleBinaryManager;
+	ItemManager* m_pItemManager;
 	BlockParticleManager* m_pBlockParticleManager;
 	EnemyManager* m_pEnemyManager;
 	NPCManager* m_pNPCManager;
@@ -233,6 +265,9 @@ private:
 
 	// Loader radius
 	float m_loaderRadius;
+
+	// Water
+	float m_waterHeight;
 
 	// Update step lock
 	bool m_stepLockEnabled;
@@ -248,6 +283,9 @@ private:
 	// Storage for modifications to chunks that are not loaded yet
 	ChunkStorageLoaderList m_vpChunkStorageList;
 	tthread::mutex m_chunkStorageListLock;
+
+	// Block colour to type matching boundaries
+	BlockColourTypeMatchList m_vpBlockColourTypeMatchList;
 
 	// Chunk counters
 	int m_numChunksLoaded;

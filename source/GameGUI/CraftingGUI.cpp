@@ -80,8 +80,6 @@ CraftingGUI::CraftingGUI(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* 
 	m_pCraftButton->SetCallBackData(this);
 	m_pCraftButton->SetDepth(2.0f);
 	m_pCraftButton->SetPressedOffset(0, -4);
-	//m_pCraftButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pCraftButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	m_pCraftingProgressBarFiller = new Icon(m_pRenderer, "", 96, 14);
 	m_pCraftingProgressBarFiller->SetDepth(1.0f);
@@ -367,6 +365,10 @@ void CraftingGUI::SkinGUI()
 	m_pCloseExitButton->SetHoverIcon(m_pFrontendManager->GetCloseExitButtonIcon_Hover());
 	m_pCloseExitButton->SetSelectedIcon(m_pFrontendManager->GetCloseExitButtonIcon_Pressed());
 	m_pCloseExitButton->SetDisabledIcon(m_pFrontendManager->GetCloseExitButtonIcon());
+
+	m_pCraftButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCraftButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCraftButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void CraftingGUI::UnSkinGUI()
@@ -442,7 +444,7 @@ void CraftingGUI::Unload()
 
 	if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false) // Needs to be after setting loaded to false, so that we correctly turn the cursor back off
 	{
-		VoxGame::GetInstance()->TurnCursorOff();
+		VoxGame::GetInstance()->TurnCursorOff(false);
 		if (VoxGame::GetInstance()->ShouldRestorePreviousCameraMode())
 		{
 			VoxGame::GetInstance()->RestorePreviousCameraMode();
@@ -550,14 +552,14 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Pickaxe
 		{
 			CraftingRecipe* pPickaxeRecipe = new CraftingRecipe();
-			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_stone.tga", InventoryType_Block, eItem_Block_Stone, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Stone Block", "", 1.0f, 1.0f, 1.0f, 3, -1, -1, -1, -1);
-			InventoryItem* pWood = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_wood.tga", InventoryType_Block, eItem_Block_Wood, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Wood Block", "", 1.0f, 1.0f, 1.0f, 4, -1, -1, -1, -1);
-			InventoryItem* pGrass = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_grass.tga", InventoryType_Block, eItem_Block_Grass, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Grass Block", "", 1.0f, 1.0f, 1.0f, 2, -1, -1, -1, -1);
+			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_Block_Stone, 3, ItemQuality_Common);
+			InventoryItem* pWood = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_Block_Wood, 4, ItemQuality_Common);
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 3, ItemQuality_Common);
 			pPickaxeRecipe->m_vpCraftingItems.push_back(pStone);
 			pPickaxeRecipe->m_vpCraftingItems.push_back(pWood);
-			pPickaxeRecipe->m_vpCraftingItems.push_back(pGrass);
+			pPickaxeRecipe->m_vpCraftingItems.push_back(pIronBar);
 
-			InventoryItem* pPickaxe = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/Pickaxe/Pickaxe.weapon", "media/textures/items/pickaxe.tga", InventoryType_Weapon_Pickaxe, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Pickaxe", "Used for mining and digging the world.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
+			InventoryItem* pPickaxe = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_NormalPickaxe);
 			pPickaxe->m_scale = 0.0f; pPickaxe->m_offsetX = 0.5f; pPickaxe->m_offsetY = 0.95f; pPickaxe->m_offsetZ = 0.5f;
 			pPickaxeRecipe->m_pResultItem = pPickaxe;
 
@@ -567,42 +569,130 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Hammer
 		{
 			CraftingRecipe* pHammerRecipe = new CraftingRecipe();
-			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_stone.tga", InventoryType_Block, eItem_Block_Stone, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Stone Block", "", 1.0f, 1.0f, 1.0f, 3, -1, -1, -1, -1);
-			InventoryItem* pWood = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_wood.tga", InventoryType_Block, eItem_Block_Wood, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Wood Block", "", 1.0f, 1.0f, 1.0f, 4, -1, -1, -1, -1);
+			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_Block_Stone, 4, ItemQuality_Common);
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 4, ItemQuality_Common);
 			pHammerRecipe->m_vpCraftingItems.push_back(pStone);
-			pHammerRecipe->m_vpCraftingItems.push_back(pWood);
+			pHammerRecipe->m_vpCraftingItems.push_back(pIronBar);
 
-			InventoryItem* pHammer = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/Hammer/Hammer.weapon", "media/textures/items/hammer.tga", InventoryType_Weapon_Hammer, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Hammer", "Used for removing items from the world and repositioning.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
+			InventoryItem* pHammer = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_Hammer);
 			pHammer->m_scale = 0.5f; pHammer->m_offsetX = 0.5f; pHammer->m_offsetY = 0.83f; pHammer->m_offsetZ = 0.5f;
 			pHammerRecipe->m_pResultItem = pHammer;
 
 			AddCraftingRecipe(pHammerRecipe);
 		}
 
-		// Sword
+		// Iron Sword
 		{
-			CraftingRecipe* pSwordRecipe = new CraftingRecipe();
-			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_stone.tga", InventoryType_Block, eItem_Block_Stone, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Stone Block", "", 1.0f, 1.0f, 1.0f, 3, -1, -1, -1, -1);
-			pSwordRecipe->m_vpCraftingItems.push_back(pStone);
+			CraftingRecipe* pIronSwordRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 3, ItemQuality_Common);
+			pIronSwordRecipe->m_vpCraftingItems.push_back(pIronBar);
 
-			InventoryItem* pSword = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/Sword/Sword.weapon", "media/textures/items/sword.tga", InventoryType_Weapon_Sword, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Sword", "Attacking enemies.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
-			pSword->m_scale = 0.5f; pSword->m_offsetX = 0.5f; pSword->m_offsetY = 0.83f; pSword->m_offsetZ = 0.5f;
-			pSwordRecipe->m_pResultItem = pSword;
+			InventoryItem* pIronSword = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronSword);
+			pIronSword->m_scale = 0.5f; pIronSword->m_offsetX = 0.5f; pIronSword->m_offsetY = 0.83f; pIronSword->m_offsetZ = 0.5f;
+			pIronSwordRecipe->m_pResultItem = pIronSword;
 
-			AddCraftingRecipe(pSwordRecipe);
+			AddCraftingRecipe(pIronSwordRecipe);
 		}
 
-		// Bigger Sword
+		// Iron Shield
 		{
-			CraftingRecipe* pBiggerSwordRecipe = new CraftingRecipe();
-			InventoryItem* pStone = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_stone.tga", InventoryType_Block, eItem_Block_Stone, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, false, false, "Stone Block", "", 1.0f, 1.0f, 1.0f, 3, -1, -1, -1, -1);
-			pBiggerSwordRecipe->m_vpCraftingItems.push_back(pStone);
+			CraftingRecipe* pIronShieldRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 4, ItemQuality_Common);
+			pIronShieldRecipe->m_vpCraftingItems.push_back(pIronBar);
 
-			InventoryItem* pBiggerSword = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/2HandedSword/2HandedSword.weapon", "media/textures/items/2handed_sword.tga", InventoryType_Weapon_2HandedSword, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Common, true, true, "Bigger Sword", "Used for removing items from the world and repositioning.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
-			pBiggerSword->m_scale = 0.5f; pBiggerSword->m_offsetX = 0.5f; pBiggerSword->m_offsetY = 0.83f; pBiggerSword->m_offsetZ = 0.5f;
-			pBiggerSwordRecipe->m_pResultItem = pBiggerSword;
+			InventoryItem* pIronShield = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronShield);
+			pIronShieldRecipe->m_pResultItem = pIronShield;
 
-			AddCraftingRecipe(pBiggerSwordRecipe);
+			AddCraftingRecipe(pIronShieldRecipe);
+		}
+
+		// Iron Helm
+		{
+			CraftingRecipe* pIronHelmRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronHelmRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronHelm = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronHelm);
+			pIronHelmRecipe->m_pResultItem = pIronHelm;
+
+			AddCraftingRecipe(pIronHelmRecipe);
+		}
+
+		// Iron Armor
+		{
+			CraftingRecipe* pIronArmorRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronArmorRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronArmor = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronArmor);
+			pIronArmorRecipe->m_pResultItem = pIronArmor;
+
+			AddCraftingRecipe(pIronArmorRecipe);
+		}
+
+		// Iron Pants
+		{
+			CraftingRecipe* pIronPantsRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronPantsRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronPants = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronPants);
+			pIronPantsRecipe->m_pResultItem = pIronPants;
+
+			AddCraftingRecipe(pIronPantsRecipe);
+		}
+
+		// Iron Gloves
+		{
+			CraftingRecipe* pIronGlovesRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronGlovesRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronGloves = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronGloves);
+			pIronGlovesRecipe->m_pResultItem = pIronGloves;
+
+			AddCraftingRecipe(pIronGlovesRecipe);
+		}
+
+		// Iron Boots
+		{
+			CraftingRecipe* pIronBootsRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronBootsRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronBoots = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronBoots);
+			pIronBootsRecipe->m_pResultItem = pIronBoots;
+
+			AddCraftingRecipe(pIronBootsRecipe);
+		}
+
+		// Iron Shoulders
+		{
+			CraftingRecipe* pIronShouldersRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			pIronShouldersRecipe->m_vpCraftingItems.push_back(pIronBar);
+
+			InventoryItem* pIronShoulders = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_IronShoulders);
+			pIronShouldersRecipe->m_pResultItem = pIronShoulders;
+
+			AddCraftingRecipe(pIronShouldersRecipe);
+		}
+
+		// 2 Handed Sword
+		{
+			CraftingRecipe* p2HandedSwordRecipe = new CraftingRecipe();
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 10, ItemQuality_Common);
+			InventoryItem* pCopperBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_CopperBar, 5, ItemQuality_Common);
+			InventoryItem* pWood = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_Block_Wood, 3, ItemQuality_Common);
+			p2HandedSwordRecipe->m_vpCraftingItems.push_back(pIronBar);
+			p2HandedSwordRecipe->m_vpCraftingItems.push_back(pCopperBar);
+			p2HandedSwordRecipe->m_vpCraftingItems.push_back(pWood);
+
+			InventoryItem* p2HandedSword = m_pInventoryManager->CreateEquipmentItemFromType(eEquipment_2HandedSword);
+			p2HandedSword->m_scale = 0.5f; p2HandedSword->m_offsetX = 0.5f; p2HandedSword->m_offsetY = 0.83f; p2HandedSword->m_offsetZ = 0.5f;
+			p2HandedSwordRecipe->m_pResultItem = p2HandedSword;
+
+			AddCraftingRecipe(p2HandedSwordRecipe);
 		}
 	}
 	else if(craftingItem == eItem_Furnace)
@@ -610,10 +700,10 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Copper
 		{
 			CraftingRecipe* pCopperRecipe = new CraftingRecipe();
-			InventoryItem* pCopperNugget = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/CopperOre/CopperOre.item", "media/textures/items/copper_ore.tga", InventoryType_Item, eItem_CopperOre, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Copper Ore", "Copper ore", 1.0f, 1.0f, 1.0f, 1, -1, -1, -1, -1);
+			InventoryItem* pCopperNugget = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_CopperOre, 1, ItemQuality_Common);
 			pCopperRecipe->m_vpCraftingItems.push_back(pCopperNugget);
 
-			InventoryItem* pCopperBar = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/CopperBar/CopperBar.item", "media/textures/items/copper_bar.tga", InventoryType_Item, eItem_CopperBar, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Copper Bar", "Copper bar", 1.0f, 1.0f, 1.0f, 1, -1, -1, -1, -1);
+			InventoryItem* pCopperBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_CopperBar, 1, ItemQuality_Common);
 			pCopperRecipe->m_pResultItem = pCopperBar;
 
 			AddCraftingRecipe(pCopperRecipe);
@@ -622,10 +712,10 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Iron
 		{
 			CraftingRecipe* pIronRecipe = new CraftingRecipe();
-			InventoryItem* pIronNugget = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/IronOre/IronOre.item", "media/textures/items/iron_ore.tga", InventoryType_Item, eItem_IronOre, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Iron Ore", "Iron ore", 1.0f, 1.0f, 1.0f, 2, -1, -1, -1, -1);
+			InventoryItem* pIronNugget = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronOre, 2, ItemQuality_Common); 
 			pIronRecipe->m_vpCraftingItems.push_back(pIronNugget);
 
-			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/IronBar/IronBar.item", "media/textures/items/iron_bar.tga", InventoryType_Item, eItem_IronBar, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Iron Bar", "Iron bar", 1.0f, 1.0f, 1.0f, 1, -1, -1, -1, -1);
+			InventoryItem* pIronBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_IronBar, 1, ItemQuality_Common);
 			pIronRecipe->m_pResultItem = pIronBar;
 
 			AddCraftingRecipe(pIronRecipe);
@@ -634,10 +724,10 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Silver
 		{
 			CraftingRecipe* pSilverRecipe = new CraftingRecipe();
-			InventoryItem* pSilverNugget = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/SilverOre/SilverOre.item", "media/textures/items/silver_ore.tga", InventoryType_Item, eItem_SilverOre, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Silver Ore", "Silver ore", 1.0f, 1.0f, 1.0f, 3, -1, -1, -1, -1);
+			InventoryItem* pSilverNugget = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_SilverOre, 3, ItemQuality_Common);
 			pSilverRecipe->m_vpCraftingItems.push_back(pSilverNugget);
 
-			InventoryItem* pSilverBar = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/SilverBar/SilverBar.item", "media/textures/items/silver_bar.tga", InventoryType_Item, eItem_SilverBar, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Silver Bar", "Silver bar", 1.0f, 1.0f, 1.0f, 1, -1, -1, -1, -1);
+			InventoryItem* pSilverBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_SilverBar, 1, ItemQuality_Common);
 			pSilverRecipe->m_pResultItem = pSilverBar;
 
 			AddCraftingRecipe(pSilverRecipe);
@@ -646,10 +736,10 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 		// Gold
 		{
 			CraftingRecipe* pGoldRecipe = new CraftingRecipe();
-			InventoryItem* pGoldNugget = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/GoldOre/GoldOre.item", "media/textures/items/gold_ore.tga", InventoryType_Item, eItem_GoldOre, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Gold Ore", "Gold ore", 1.0f, 1.0f, 1.0f, 4, -1, -1, -1, -1);
+			InventoryItem* pGoldNugget = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_GoldOre, 3, ItemQuality_Common);
 			pGoldRecipe->m_vpCraftingItems.push_back(pGoldNugget);
 
-			InventoryItem* pGoldBar = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/GoldBar/GoldBar.item", "media/textures/items/gold_bar.tga", InventoryType_Item, eItem_GoldBar, ItemStatus_None, EquipSlot_NoSlot, ItemQuality_Common, false, false, "Gold Bar", "Gold bar", 1.0f, 1.0f, 1.0f, 1, -1, -1, -1, -1);
+			InventoryItem* pGoldBar = m_pInventoryManager->CreateInventoryItemForCrafting(eItem_GoldBar, 1, ItemQuality_Common);
 			pGoldRecipe->m_pResultItem = pGoldBar;
 
 			AddCraftingRecipe(pGoldRecipe);
@@ -657,18 +747,6 @@ void CraftingGUI::SetCraftingRecipesForItem(eItem craftingItem)
 	}
 	else
 	{
-		// Knife
-		{
-			CraftingRecipe* pKnifeRecipe = new CraftingRecipe();
-			InventoryItem* pGrass = m_pInventoryManager->CreateInventoryItem("media/gamedata/items/Block_Wood/Block_Wood.item", "media/textures/items/block_grass.tga", InventoryType_Block, eItem_Block_Grass, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Rare, false, false, "Grass Block", "", 1.0f, 1.0f, 1.0f, 2, -1, -1, -1, -1);
-			pKnifeRecipe->m_vpCraftingItems.push_back(pGrass);
-
-			InventoryItem* pKnife = m_pInventoryManager->CreateInventoryItem("media/gamedata/weapons/Knife/Knife.weapon", "media/textures/items/knife.tga", InventoryType_Weapon_Dagger, eItem_None, ItemStatus_None, EquipSlot_RightHand, ItemQuality_Rare, false, false, "Knife", "Used for removing items from the world and repositioning.", 1.0f, 1.0f, 1.0f, -1, -1, -1, -1, -1);
-			pKnife->m_scale = 0.5f; pKnife->m_offsetX = 0.5f; pKnife->m_offsetY = 0.83f; pKnife->m_offsetZ = 0.5f;
-			pKnifeRecipe->m_pResultItem = pKnife;
-
-			AddCraftingRecipe(pKnifeRecipe);
-		}
 	}
 }
 
@@ -709,8 +787,10 @@ void CraftingGUI::CreateRecipeButtons()
 		pNewResultsItem->SetSelectedIcon(m_pRecipeButton_Pressed_Icon);
 		pNewResultsItem->SetDisabledIcon(m_pRecipeButton_Icon);
 		pNewResultsItem->SetPressedOffset(0, -4);
-		//pNewResultsItem->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-		//pNewResultsItem->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+		pNewResultsItem->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewResultsItem->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewResultsItem->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+		pNewResultsItem->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 		int xPos = -m_craftingResultsScrollAreaWidth;
 		int yPos = m_craftingResultsScrollAreaHeight - ((i+1)*36);
@@ -723,7 +803,7 @@ void CraftingGUI::CreateRecipeButtons()
 		pNewResultsItem->AddIcon(m_pRenderer, lItemTexture, 64, 64, 24, 24, 4, 4, 2.5f);
 
 		// Create the item label
-		pNewResultsItem->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_20(), m_pFrontendManager->GetFrontendFont_20_Outline(), pResultsItem->m_title, Colour(1.0f, 1.0f, 1.0f, 1.0f), 40, 7, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
+		pNewResultsItem->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_20(), m_pFrontendManager->GetFrontendFont_20_Outline(), pResultsItem->m_title, Colour(1.0f, 1.0f, 1.0f, 1.0f), 34, 7, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 		pNewResultsItem->SetCallBackFunction(_ResultsItemPressed);
 		pNewResultsItem->SetCallBackData(lpSlotItem);
@@ -1005,7 +1085,7 @@ void CraftingGUI::ShowTooltip(RecipeSlotItem* pRecipeItem)
 	case EquipSlot_Head: { sprintf(slotText, "Head"); break; }
 	case EquipSlot_Shoulders: { sprintf(slotText, "Shoulders"); break; }
 	case EquipSlot_Body: { sprintf(slotText, "Body"); break; }
-	case EquipSlot_Legs: { sprintf(slotText, "Lefs"); break; }
+	case EquipSlot_Legs: { sprintf(slotText, "Legs"); break; }
 	case EquipSlot_Hand: { sprintf(slotText, "Hand"); break; }
 	case EquipSlot_Feet: { sprintf(slotText, "Feet"); break; }
 	case EquipSlot_Accessory1: { sprintf(slotText, "Accessory 1"); break; }
@@ -1130,7 +1210,7 @@ void CraftingGUI::ShowTooltip(IngredientsSlotItem* pIngredientItem)
 	case EquipSlot_Head: { sprintf(slotText, "Head"); break; }
 	case EquipSlot_Shoulders: { sprintf(slotText, "Shoulders"); break; }
 	case EquipSlot_Body: { sprintf(slotText, "Body"); break; }
-	case EquipSlot_Legs: { sprintf(slotText, "Lefs"); break; }
+	case EquipSlot_Legs: { sprintf(slotText, "Legs"); break; }
 	case EquipSlot_Hand: { sprintf(slotText, "Hand"); break; }
 	case EquipSlot_Feet: { sprintf(slotText, "Feet"); break; }
 	case EquipSlot_Accessory1: { sprintf(slotText, "Accessory 1"); break; }
@@ -1300,13 +1380,13 @@ void CraftingGUI::UpdateCraftButton()
 	if(m_crafting == false && canCraft)
 	{
 		m_pCraftButton->SetDisabled(false);
-		m_pCraftButton->SetLabelColour(Colour(1.0f, 1.0f, 1.0f));
+		m_pCraftButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 		m_pCraftButton->SetLabelOutlineColour(Colour(0.0f, 0.0f, 0.0f));
 	}
 	else
 	{
 		m_pCraftButton->SetDisabled(true);
-		m_pCraftButton->SetLabelColour(Colour(0.75f, 0.75f, 0.75f));
+		m_pCraftButton->SetLabelColour(m_pFrontendManager->GetDisabledFontColour());
 		m_pCraftButton->SetLabelOutlineColour(Colour(0.25f, 0.25f, 0.25f));
 	}
 }
@@ -1475,7 +1555,7 @@ void CraftingGUI::ResultsItemPressed(RecipeSlotItem* pRecipeButtonData)
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetDefaultIcon(m_pRecipeButton_Icon);
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetHoverIcon(m_pRecipeButton_Hover_Icon);
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetSelectedIcon(m_pRecipeButton_Pressed_Icon);
-		m_pRecipeSlotItemSelected->m_pResultsIcon->SetLabelColour(Colour(1.0f, 1.0f, 1.0f));
+		m_pRecipeSlotItemSelected->m_pResultsIcon->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetEnabled(true);
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetSelected(false);
 		m_pRecipeSlotItemSelected->m_pResultsIcon->SetHover(false);

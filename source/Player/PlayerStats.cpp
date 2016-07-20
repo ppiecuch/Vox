@@ -26,6 +26,8 @@ PlayerStats::PlayerStats(Player* pPlayer)
 {
 	m_pPlayer = pPlayer;	
 
+	m_class = PlayerClass_Debug;
+
 	m_supressExport = false;
 
 	ResetStats();
@@ -75,6 +77,11 @@ void PlayerStats::ImportStats(string playerName)
 
 		string name;
 		importFile >> tempString >> name;
+
+		int playerClass;
+		importFile >> tempString >> playerClass;
+		m_class = (PlayerClass)playerClass;
+
 		importFile >> tempString >> m_level;
 		importFile >> tempString >> m_experience;
 		importFile >> tempString >> m_maxExperience;
@@ -114,6 +121,7 @@ void PlayerStats::ExportStats(string playerName)
 	if(exportFile.is_open())
 	{
 		exportFile << "name: " << playerName << "\n";
+		exportFile << "class: " << m_class << "\n";
 		exportFile << "level: " << m_level << "\n";
 		exportFile << "experience: " << m_experience << "\n";
 		exportFile << "maxExperience: " << m_maxExperience << "\n";
@@ -133,6 +141,11 @@ void PlayerStats::ExportStats(string playerName)
 }
 
 // Accessors
+PlayerClass PlayerStats::GetClass()
+{
+	return m_class;
+}
+
 int PlayerStats::GetLevel()
 {
 	return m_level;
@@ -183,7 +196,12 @@ int PlayerStats::GetLuckStat()
 	return m_luckStat;
 }
 
-// Setting
+// Setters
+void PlayerStats::SetClass(PlayerClass playerClass)
+{
+	m_class = playerClass;
+}
+
 void PlayerStats::GiveExperience(int amount)
 {
 	m_experience += amount;
@@ -200,6 +218,8 @@ void PlayerStats::GiveExperience(int amount)
 
 		VoxGame::GetInstance()->GetCharacterGUI()->UpdatePlayerStats();
 	}
+
+	VoxGame::GetInstance()->GetHUD()->UpdatePlayerData();
 
 	ExportStats(m_name);
 }

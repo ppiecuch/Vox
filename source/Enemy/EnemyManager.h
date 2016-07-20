@@ -99,6 +99,7 @@ private:
 
 public:
 	/* Public members */
+	static const int MAX_NUM_ENEMIES = 15;
 
 protected:
 	/* Protected members */

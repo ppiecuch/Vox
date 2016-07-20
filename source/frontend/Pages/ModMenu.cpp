@@ -16,6 +16,15 @@
 #include "../../utils/FileUtils.h"
 #include "../../Mods/ModsManager.h"
 
+#include <iostream>
+#include "ini/INIReader.h"
+
+#include <fstream>
+#include <ostream>
+#include <iostream>
+#include <string>
+using namespace std;
+
 
 ModMenu::ModMenu(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* pFrontPageManager, int windowWidth, int windowHeight)
 	: FrontendPage(pRenderer, pGUI, pFrontPageManager, FrontendScreen_ModMenu, windowWidth, windowHeight)
@@ -58,40 +67,30 @@ ModMenu::ModMenu(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* pFrontPa
 	m_pGameplayMode->SetCallBackData(this);
 	m_pGameplayMode->SetDepth(2.0f);
 	m_pGameplayMode->SetPressedOffset(0, -2);
-	//m_pGameplayMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pGameplayMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	m_pGraphicsMode = new OptionBox(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), "Graphics", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pGraphicsMode->SetCallBackFunction(_GraphicsTabPressed);
 	m_pGraphicsMode->SetCallBackData(this);
 	m_pGraphicsMode->SetDepth(2.1f);
 	m_pGraphicsMode->SetPressedOffset(0, -2);
-	//m_pGraphicsMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pGraphicsMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	m_pSoundMode = new OptionBox(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), "Sound", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pSoundMode->SetCallBackFunction(_SoundTabPressed);
 	m_pSoundMode->SetCallBackData(this);
 	m_pSoundMode->SetDepth(2.2f);
 	m_pSoundMode->SetPressedOffset(0, -2);
-	//m_pSoundMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pSoundMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	m_pHUDMode = new OptionBox(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), "HUD", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pHUDMode->SetCallBackFunction(_GUITabPressed);
 	m_pHUDMode->SetCallBackData(this);
 	m_pHUDMode->SetDepth(2.3f);
 	m_pHUDMode->SetPressedOffset(0, -2);
-	//m_pHUDMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pHUDMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	m_pMiscMode = new OptionBox(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), "Misc", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pMiscMode->SetCallBackFunction(_MiscTabPressed);
 	m_pMiscMode->SetCallBackData(this);
 	m_pMiscMode->SetDepth(2.4f);
 	m_pMiscMode->SetPressedOffset(0, -2);
-	//m_pMiscMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pMiscMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 	// Scrollbar
 	m_pModsScrollbar = new ScrollBar(m_pRenderer);
@@ -110,6 +109,52 @@ ModMenu::ModMenu(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* pFrontPa
 
 	m_pModWindow->AddComponent(m_pModsModeController);
 	m_pModWindow->AddComponent(m_pModsScrollbar);
+
+	// Tooltip
+	m_pTooltipBackground_Common = new Icon(m_pRenderer, "", 200, 220);
+	m_pTooltipBackground_Common->SetDepth(8.5f);
+
+	m_pTooltipBackground_Uncommon = new Icon(m_pRenderer, "", 200, 220);
+	m_pTooltipBackground_Uncommon->SetDepth(8.5f);
+
+	m_pTooltipBackground_Magical = new Icon(m_pRenderer, "", 200, 220);
+	m_pTooltipBackground_Magical->SetDepth(8.5f);
+
+	m_pTooltipBackground_Rare = new Icon(m_pRenderer, "", 200, 220);
+	m_pTooltipBackground_Rare->SetDepth(8.5f);
+
+	m_pTooltipBackground_Epic = new Icon(m_pRenderer, "", 200, 220);
+	m_pTooltipBackground_Epic->SetDepth(8.5f);
+
+	char nameText[] = "[ITEM]";
+	m_pTooltipNameLabel = new Label(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), nameText, Colour(1.0f, 1.0f, 1.0f, 1.0f));
+	m_pTooltipNameLabel->SetOutline(true);
+	m_pTooltipNameLabel->SetOutlineColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_pTooltipNameLabel->SetOutlineFont(m_pFrontendManager->GetFrontendFont_30_Outline());
+	m_pTooltipNameLabel->SetDepth(8.5f);
+
+	char descText[] = "[REPLACE ME]";
+	m_pTooltipDescriptionLabel = new FormattedLabel(m_pRenderer, m_pFrontendManager->GetFrontendFont_25(), m_pFrontendManager->GetFrontendFont_25(), m_pFrontendManager->GetFrontendFont_25(), descText);
+	m_pTooltipDescriptionLabel->SetOutline(true);
+	m_pTooltipDescriptionLabel->SetColour(Colour(1.0f, 1.0f, 1.0f, 1.0f));
+	m_pTooltipDescriptionLabel->SetOutlineColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_pTooltipDescriptionLabel->SetOutlineFont(m_pFrontendManager->GetFrontendFont_25_Outline());
+	m_pTooltipDescriptionLabel->SetDepth(8.5f);
+	m_pTooltipDescriptionLabel->SetWordWrap(true);
+
+	char slotText[] = "[SLOT]";
+	m_pTooltipSlotLabel = new Label(m_pRenderer, m_pFrontendManager->GetFrontendFont_20(), slotText, Colour(0.5f, 0.5f, 0.5f, 1.0f));
+	m_pTooltipSlotLabel->SetOutline(true);
+	m_pTooltipSlotLabel->SetOutlineColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_pTooltipSlotLabel->SetOutlineFont(m_pFrontendManager->GetFrontendFont_20_Outline());
+	m_pTooltipSlotLabel->SetDepth(8.5f);
+
+	char qualityText[] = "[QUALITY]";
+	m_pTooltipQualityLabel = new Label(m_pRenderer, m_pFrontendManager->GetFrontendFont_20(), qualityText, Colour(0.5f, 0.5f, 0.5f, 1.0f));
+	m_pTooltipQualityLabel->SetOutline(true);
+	m_pTooltipQualityLabel->SetOutlineColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_pTooltipQualityLabel->SetOutlineFont(m_pFrontendManager->GetFrontendFont_20_Outline());
+	m_pTooltipQualityLabel->SetDepth(8.5f);
 
 	SetWindowDimensions(m_windowWidth, m_windowHeight);
 
@@ -140,6 +185,17 @@ ModMenu::~ModMenu()
 
 	// Scrollbar
 	delete m_pModsScrollbar;
+
+	// Tooltip
+	delete m_pTooltipBackground_Common;
+	delete m_pTooltipBackground_Uncommon;
+	delete m_pTooltipBackground_Magical;
+	delete m_pTooltipBackground_Rare;
+	delete m_pTooltipBackground_Epic;
+	delete m_pTooltipNameLabel;
+	delete m_pTooltipDescriptionLabel;
+	delete m_pTooltipSlotLabel;
+	delete m_pTooltipQualityLabel;
 }
 
 void ModMenu::Reset()
@@ -241,7 +297,7 @@ void ModMenu::SelectLoadedMods()
 					m_vpModButtonData[j]->m_toggled = true;
 					string themeName = VoxGame::GetInstance()->GetModsManager()->GetHUDTextureTheme();
 					string tickIcon = "media/textures/gui/" + themeName + "/common/tick.tga";
-					m_vpModButtonData[j]->m_pModButton->AddIcon(m_pRenderer, tickIcon.c_str(), 32, 32, 32, 32, buttonWidth - 38, 4, 2.0f);
+					m_vpModButtonData[j]->m_pModButton->AddIcon(m_pRenderer, tickIcon.c_str(), 32, 32, 32, 32, buttonWidth - 38, 4, 3.25f);
 				}
 			}
 		}
@@ -285,6 +341,72 @@ void ModMenu::SkinGUI()
 	m_pFrontendManager->SetTabIcons(m_pSoundMode);
 	m_pFrontendManager->SetTabIcons(m_pHUDMode);
 	m_pFrontendManager->SetTabIcons(m_pMiscMode);
+
+	m_pGameplayMode->SetDisplayLabel(false);
+	m_pGameplayMode->SetDimensions(m_modWindowWidth - 32 - 375, 0, 75, 32);
+	m_pGameplayMode->SetDisplayLabel(true);
+	int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_18_Outline(), "%s", m_pGameplayMode->GetLabel().GetText().c_str());
+	m_pGameplayMode->SetLabelPosition((int)(75 * 0.5f - textWidth*0.5f), 8);
+
+	m_pGraphicsMode->SetDisplayLabel(false);
+	m_pGraphicsMode->SetDimensions(m_modWindowWidth - 32 - 300, 0, 75, 32);
+	m_pGraphicsMode->SetDisplayLabel(true);
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_18_Outline(), "%s", m_pGraphicsMode->GetLabel().GetText().c_str());
+	m_pGraphicsMode->SetLabelPosition((int)(75 * 0.5f - textWidth*0.5f), 8);
+
+	m_pSoundMode->SetDisplayLabel(false);
+	m_pSoundMode->SetDimensions(m_modWindowWidth - 32 - 225, 0, 75, 32);
+	m_pSoundMode->SetDisplayLabel(true);
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_18_Outline(), "%s", m_pSoundMode->GetLabel().GetText().c_str());
+	m_pSoundMode->SetLabelPosition((int)(75 * 0.5f - textWidth*0.5f), 8);
+
+	m_pHUDMode->SetDisplayLabel(false);
+	m_pHUDMode->SetDimensions(m_modWindowWidth - 32 - 150, 0, 75, 32);
+	m_pHUDMode->SetDisplayLabel(true);
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_18_Outline(), "%s", m_pHUDMode->GetLabel().GetText().c_str());
+	m_pHUDMode->SetLabelPosition((int)(75 * 0.5f - textWidth*0.5f), 8);
+
+	m_pMiscMode->SetDisplayLabel(false);
+	m_pMiscMode->SetDimensions(m_modWindowWidth - 32 - 75, 0, 75, 32);
+	m_pMiscMode->SetDisplayLabel(true);
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_18_Outline(), "%s", m_pMiscMode->GetLabel().GetText().c_str());
+	m_pMiscMode->SetLabelPosition((int)(75 * 0.5f - textWidth*0.5f), 8);
+
+	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_common.tga";
+	m_pTooltipBackground_Common->SetIcon(iconName);
+	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_uncommon.tga";
+	m_pTooltipBackground_Uncommon->SetIcon(iconName);
+	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_magical.tga";
+	m_pTooltipBackground_Magical->SetIcon(iconName);
+	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_rare.tga";
+	m_pTooltipBackground_Rare->SetIcon(iconName);
+	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_epic.tga";
+	m_pTooltipBackground_Epic->SetIcon(iconName);
+
+	m_pGameplayMode->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pGameplayMode->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pGameplayMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pGameplayMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+
+	m_pGraphicsMode->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pGraphicsMode->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pGraphicsMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pGraphicsMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+
+	m_pSoundMode->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSoundMode->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSoundMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pSoundMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+
+	m_pHUDMode->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pHUDMode->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pHUDMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pHUDMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+
+	m_pMiscMode->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pMiscMode->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pMiscMode->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pMiscMode->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void ModMenu::UnSkinGUI()
@@ -298,12 +420,19 @@ void ModMenu::Load()
 	m_pGameplayMode->SetToggled(true);
 	GameplayTabPressed();
 
+	m_toolTipVisible = false;
+	m_tooltipAppearDelayTimer = 0.0f;
+	m_toolTipComponentsAdded = false;
+	m_tooltipQuality = ItemQuality_Common;
+
 	m_loaded = true;
 }
 
 void ModMenu::Unload()
 {
 	VoxGame::GetInstance()->GetModsManager()->SaveMods();
+
+	HideTooltip();
 
 	RemoveGameplayModButtons();
 	RemoveGraphicsModButtons();
@@ -328,24 +457,43 @@ void ModMenu::CreateGameplayModButtons()
 
 	int buttonX = -(m_modWindowWidth - 42);
 	int buttonY = m_modWindowHeight - buttonHeight - 17;
-	for (int y = 0; y < 4; y++)
+
+	char importDirectory[128];
+	sprintf(importDirectory, "media/mods/gameplay/*.*");
+
+	vector<string> listFiles;
+	listFiles = listFilesInDirectory(importDirectory);
+	int modButtonCounter = 0;
+	int yCounter = 0;
+	while (modButtonCounter < listFiles.size())
 	{
+		if (strcmp(listFiles[modButtonCounter].c_str(), ".") == 0 || strcmp(listFiles[modButtonCounter].c_str(), "..") == 0)
+		{
+			modButtonCounter++;
+			continue;
+		}
+
 		buttonX = -(m_modWindowWidth - 42);
 
-		for (int x = 0; x < 3; x++)
+		for (int x = 0; x < 3 && modButtonCounter < listFiles.size(); x++)
 		{
 			Button* m_pNewButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), "");
+			m_pFrontendManager->SetButtonIcons(m_pNewButton, ButtonSize_225x75);
 			m_pNewButton->SetDimensions(buttonX, buttonY, buttonWidth, buttonHeight);
 			m_pNewButton->SetPressedOffset(0, -1);
 
-			char buttonText[64];
-			sprintf(buttonText, "TestButton: %i,%i", x, y);
-			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), buttonText, Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
+			// Add thumbnail icon
+			char lThumbnailIcon[128];
+			sprintf(lThumbnailIcon, "media/mods/gameplay/%s/thumbnail.tga", listFiles[modButtonCounter].c_str());
+			m_pNewButton->AddIcon(m_pRenderer, lThumbnailIcon, buttonWidth, buttonHeight, buttonWidth - 16, buttonHeight - 16, 8, 8, 2.5f);
+
+			// Add header text
+			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), listFiles[modButtonCounter].c_str(), Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 			ModButtonData* pModButtonData = new ModButtonData();
 			pModButtonData->m_pModMenu = this;
 			pModButtonData->m_pModButton = m_pNewButton;
-			pModButtonData->m_modName = buttonText;
+			pModButtonData->m_modName = listFiles[modButtonCounter];
 			pModButtonData->m_toggled = false;
 			pModButtonData->m_allowToggleOff = true;
 			pModButtonData->m_allowMultipleSelection = true;
@@ -355,8 +503,24 @@ void ModMenu::CreateGameplayModButtons()
 			pModButtonData->m_HUDButton = false;
 			pModButtonData->m_miscButton = false;
 
+			// Load the meta data file for the mod description and author
+			string settingsIniFile = "media/mods/gameplay/" + listFiles[modButtonCounter] + "/description.ini";
+			INIReader reader(settingsIniFile);
+
+			if (reader.ParseError() >= 0)
+			{
+				pModButtonData->m_modDescription = reader.Get("MetaData", "Description", "[DECRIPTION]");
+				pModButtonData->m_modAuthor = reader.Get("MetaData", "Author", "[AUTHOR]");
+			}
+
 			m_pNewButton->SetCallBackFunction(_ModButtonPressed);
 			m_pNewButton->SetCallBackData(pModButtonData);
+
+			m_pNewButton->SetEnterCallBackFunction(_ModButtonEntered);
+			m_pNewButton->SetEnterCallBackData(pModButtonData);
+
+			m_pNewButton->SetExitCallBackFunction(_ModButtonExited);
+			m_pNewButton->SetExitCallBackData(pModButtonData);
 
 			m_vpModButtonData.push_back(pModButtonData);
 
@@ -365,7 +529,11 @@ void ModMenu::CreateGameplayModButtons()
 			m_vpGameplayModButtons.push_back(m_pNewButton);
 
 			buttonX += buttonAndSpacerWidth;
+
+			modButtonCounter++;
 		}
+
+		yCounter++;
 
 		buttonY -= buttonAndSpacerHeight;
 	}
@@ -413,9 +581,16 @@ void ModMenu::CreateGraphicsModButtons()
 		for (int x = 0; x < 3 && modButtonCounter < listFiles.size(); x++)
 		{
 			Button* m_pNewButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), "");
+			m_pFrontendManager->SetButtonIcons(m_pNewButton, ButtonSize_225x75);
 			m_pNewButton->SetDimensions(buttonX, buttonY, buttonWidth, buttonHeight);
 			m_pNewButton->SetPressedOffset(0, -1);
 
+			// Add thumbnail icon
+			char lThumbnailIcon[128];
+			sprintf(lThumbnailIcon, "media/graphics/%s/thumbnail.tga", listFiles[modButtonCounter].c_str());
+			m_pNewButton->AddIcon(m_pRenderer, lThumbnailIcon, buttonWidth, buttonHeight, buttonWidth - 16, buttonHeight - 16, 8, 8, 2.5f);
+
+			// Add header text
 			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), listFiles[modButtonCounter].c_str(), Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 			ModButtonData* pModButtonData = new ModButtonData();
@@ -431,8 +606,24 @@ void ModMenu::CreateGraphicsModButtons()
 			pModButtonData->m_HUDButton = false;
 			pModButtonData->m_miscButton = false;
 
+			// Load the meta data file for the mod description and author
+			string settingsIniFile = "media/graphics/" + listFiles[modButtonCounter] + "/description.ini";
+			INIReader reader(settingsIniFile);
+
+			if (reader.ParseError() >= 0)
+			{
+				pModButtonData->m_modDescription = reader.Get("MetaData", "Description", "[DECRIPTION]");
+				pModButtonData->m_modAuthor = reader.Get("MetaData", "Author", "[AUTHOR]");
+			}
+
 			m_pNewButton->SetCallBackFunction(_ModButtonPressed);
 			m_pNewButton->SetCallBackData(pModButtonData);
+
+			m_pNewButton->SetEnterCallBackFunction(_ModButtonEntered);
+			m_pNewButton->SetEnterCallBackData(pModButtonData);
+
+			m_pNewButton->SetExitCallBackFunction(_ModButtonExited);
+			m_pNewButton->SetExitCallBackData(pModButtonData);
 
 			m_vpModButtonData.push_back(pModButtonData);
 
@@ -493,9 +684,16 @@ void ModMenu::CreateSoundModButtons()
 		for (int x = 0; x < 3 && modButtonCounter < listFiles.size(); x++)
 		{
 			Button* m_pNewButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), "");
+			m_pFrontendManager->SetButtonIcons(m_pNewButton, ButtonSize_225x75);
 			m_pNewButton->SetDimensions(buttonX, buttonY, buttonWidth, buttonHeight);
 			m_pNewButton->SetPressedOffset(0, -1);
 
+			// Add thumbnail icon
+			char lThumbnailIcon[128];
+			sprintf(lThumbnailIcon, "media/audio/%s/thumbnail.tga", listFiles[modButtonCounter].c_str());
+			m_pNewButton->AddIcon(m_pRenderer, lThumbnailIcon, buttonWidth, buttonHeight, buttonWidth - 16, buttonHeight - 16, 8, 8, 2.5f);
+
+			// Add header text
 			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), listFiles[modButtonCounter].c_str(), Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 			ModButtonData* pModButtonData = new ModButtonData();
@@ -511,8 +709,24 @@ void ModMenu::CreateSoundModButtons()
 			pModButtonData->m_HUDButton = false;
 			pModButtonData->m_miscButton = false;
 
+			// Load the meta data file for the mod description and author
+			string settingsIniFile = "media/audio/" + listFiles[modButtonCounter] + "/description.ini";
+			INIReader reader(settingsIniFile);
+
+			if (reader.ParseError() >= 0)
+			{
+				pModButtonData->m_modDescription = reader.Get("MetaData", "Description", "[DECRIPTION]");
+				pModButtonData->m_modAuthor = reader.Get("MetaData", "Author", "[AUTHOR]");
+			}
+
 			m_pNewButton->SetCallBackFunction(_ModButtonPressed);
 			m_pNewButton->SetCallBackData(pModButtonData);
+
+			m_pNewButton->SetEnterCallBackFunction(_ModButtonEntered);
+			m_pNewButton->SetEnterCallBackData(pModButtonData);
+
+			m_pNewButton->SetExitCallBackFunction(_ModButtonExited);
+			m_pNewButton->SetExitCallBackData(pModButtonData);
 
 			m_vpModButtonData.push_back(pModButtonData);
 
@@ -573,9 +787,16 @@ void ModMenu::CreateHUDModButtons()
 		for (int x = 0; x < 3 && modButtonCounter < listFiles.size(); x++)
 		{
 			Button* m_pNewButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), "");
+			m_pFrontendManager->SetButtonIcons(m_pNewButton, ButtonSize_225x75);
 			m_pNewButton->SetDimensions(buttonX, buttonY, buttonWidth, buttonHeight);
 			m_pNewButton->SetPressedOffset(0, -1);
 
+			// Add thumbnail icon
+			char lThumbnailIcon[128];
+			sprintf(lThumbnailIcon, "media/textures/gui/%s/thumbnail.tga", listFiles[modButtonCounter].c_str());
+			m_pNewButton->AddIcon(m_pRenderer, lThumbnailIcon, buttonWidth, buttonHeight, buttonWidth - 16, buttonHeight - 16, 8, 8, 2.5f);
+
+			// Add header text
 			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), listFiles[modButtonCounter].c_str(), Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 			ModButtonData* pModButtonData = new ModButtonData();
@@ -591,8 +812,24 @@ void ModMenu::CreateHUDModButtons()
 			pModButtonData->m_HUDButton = true;
 			pModButtonData->m_miscButton = false;
 
+			// Load the meta data file for the mod description and author
+			string settingsIniFile = "media/textures/gui/" + listFiles[modButtonCounter] + "/description.ini";
+			INIReader reader(settingsIniFile);
+
+			if (reader.ParseError() >= 0)
+			{
+				pModButtonData->m_modDescription = reader.Get("MetaData", "Description", "[DECRIPTION]");
+				pModButtonData->m_modAuthor = reader.Get("MetaData", "Author", "[AUTHOR]");
+			}
+
 			m_pNewButton->SetCallBackFunction(_ModButtonPressed);
 			m_pNewButton->SetCallBackData(pModButtonData);
+
+			m_pNewButton->SetEnterCallBackFunction(_ModButtonEntered);
+			m_pNewButton->SetEnterCallBackData(pModButtonData);
+
+			m_pNewButton->SetExitCallBackFunction(_ModButtonExited);
+			m_pNewButton->SetExitCallBackData(pModButtonData);
 
 			m_vpModButtonData.push_back(pModButtonData);
 
@@ -632,24 +869,43 @@ void ModMenu::CreateMiscModButtons()
 
 	int buttonX = -(m_modWindowWidth - 42);
 	int buttonY = m_modWindowHeight - buttonHeight - 17;
-	for (int y = 0; y < 4; y++)
+
+	char importDirectory[128];
+	sprintf(importDirectory, "media/mods/misc/*.*");
+
+	vector<string> listFiles;
+	listFiles = listFilesInDirectory(importDirectory);
+	int modButtonCounter = 0;
+	int yCounter = 0;
+	while (modButtonCounter < listFiles.size())
 	{
+		if (strcmp(listFiles[modButtonCounter].c_str(), ".") == 0 || strcmp(listFiles[modButtonCounter].c_str(), "..") == 0)
+		{
+			modButtonCounter++;
+			continue;
+		}
+
 		buttonX = -(m_modWindowWidth - 42);
 
-		for (int x = 0; x < 3; x++)
+		for (int x = 0; x < 3 && modButtonCounter < listFiles.size(); x++)
 		{
 			Button* m_pNewButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), "");
+			m_pFrontendManager->SetButtonIcons(m_pNewButton, ButtonSize_225x75);
 			m_pNewButton->SetDimensions(buttonX, buttonY, buttonWidth, buttonHeight);
 			m_pNewButton->SetPressedOffset(0, -1);
 
-			char buttonText[64];
-			sprintf(buttonText, "TestButton: %i,%i", x, y);
-			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), buttonText, Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
+			// Add thumbnail icon
+			char lThumbnailIcon[128];
+			sprintf(lThumbnailIcon, "media/mods/misc/%s/thumbnail.tga", listFiles[modButtonCounter].c_str());
+			m_pNewButton->AddIcon(m_pRenderer, lThumbnailIcon, buttonWidth, buttonHeight, buttonWidth - 16, buttonHeight - 16, 8, 8, 2.5f);
+
+			// Add header text
+			m_pNewButton->AddText(m_pRenderer, m_pFrontendManager->GetFrontendFont_18(), m_pFrontendManager->GetFrontendFont_18_Outline(), listFiles[modButtonCounter].c_str(), Colour(1.0f, 1.0f, 1.0f, 1.0f), 7, buttonHeight - 20, true, Colour(0.0f, 0.0f, 0.0f, 1.0f));
 
 			ModButtonData* pModButtonData = new ModButtonData();
 			pModButtonData->m_pModMenu = this;
 			pModButtonData->m_pModButton = m_pNewButton;
-			pModButtonData->m_modName = buttonText;
+			pModButtonData->m_modName = listFiles[modButtonCounter];
 			pModButtonData->m_toggled = false;
 			pModButtonData->m_allowToggleOff = true;
 			pModButtonData->m_allowMultipleSelection = true;
@@ -659,8 +915,24 @@ void ModMenu::CreateMiscModButtons()
 			pModButtonData->m_HUDButton = false;
 			pModButtonData->m_miscButton = true;
 
+			// Load the meta data file for the mod description and author
+			string settingsIniFile = "media/mods/misc/" + listFiles[modButtonCounter] + "/description.ini";
+			INIReader reader(settingsIniFile);
+
+			if (reader.ParseError() >= 0)
+			{
+				pModButtonData->m_modDescription = reader.Get("MetaData", "Description", "[DECRIPTION]");
+				pModButtonData->m_modAuthor = reader.Get("MetaData", "Author", "[AUTHOR]");
+			}
+
 			m_pNewButton->SetCallBackFunction(_ModButtonPressed);
 			m_pNewButton->SetCallBackData(pModButtonData);
+
+			m_pNewButton->SetEnterCallBackFunction(_ModButtonEntered);
+			m_pNewButton->SetEnterCallBackData(pModButtonData);
+
+			m_pNewButton->SetExitCallBackFunction(_ModButtonExited);
+			m_pNewButton->SetExitCallBackData(pModButtonData);
 
 			m_vpModButtonData.push_back(pModButtonData);
 
@@ -669,7 +941,11 @@ void ModMenu::CreateMiscModButtons()
 			m_vpMiscModButtons.push_back(m_pNewButton);
 
 			buttonX += buttonAndSpacerWidth;
+
+			modButtonCounter++;
 		}
+
+		yCounter++;
 
 		buttonY -= buttonAndSpacerHeight;
 	}
@@ -686,10 +962,118 @@ void ModMenu::RemoveMiscModButtons()
 	m_vpMiscModButtons.clear();
 }
 
+// Tooltips
+void ModMenu::UpdateToolTipAppear(float dt)
+{
+	if (m_toolTipVisible)
+	{
+		if (m_tooltipAppearDelayTimer <= 0.0f)
+		{
+			if (m_toolTipComponentsAdded == false)
+			{
+				switch (m_tooltipQuality)
+				{
+				case ItemQuality_Common: { m_pModWindow->AddComponent(m_pTooltipBackground_Common); break; }
+				case ItemQuality_Uncommon: { m_pModWindow->AddComponent(m_pTooltipBackground_Uncommon); break; }
+				case ItemQuality_Magical: { m_pModWindow->AddComponent(m_pTooltipBackground_Magical); break; }
+				case ItemQuality_Rare: { m_pModWindow->AddComponent(m_pTooltipBackground_Rare); break; }
+				case ItemQuality_Epic: { m_pModWindow->AddComponent(m_pTooltipBackground_Epic); break; }
+				}
+
+				m_pModWindow->AddComponent(m_pTooltipNameLabel);
+				m_pModWindow->AddComponent(m_pTooltipDescriptionLabel);
+				m_pModWindow->AddComponent(m_pTooltipSlotLabel);
+				//m_pModWindow->AddComponent(m_pTooltipQualityLabel);
+
+				m_toolTipComponentsAdded = true;
+			}
+		}
+		else
+		{
+			m_tooltipAppearDelayTimer -= dt;
+		}
+	}
+}
+
+void ModMenu::ShowTooltip(ModButtonData* pModButtonData)
+{
+	if (m_toolTipVisible == true)
+	{
+		return;
+	}
+
+	// Set the focused window when we show a tooltip
+	m_pModWindow->SetFocusWindow();
+
+	// Replace the tooltip name
+	m_pTooltipNameLabel->SetText(pModButtonData->m_modName);
+
+	// Replace the tooltip description
+	m_pTooltipDescriptionLabel->SetText(pModButtonData->m_modDescription);
+
+	// Replace the tooltip equipslot text
+	char slotText[256];
+	sprintf(slotText, "Author: %s", pModButtonData->m_modAuthor.c_str());
+	m_pTooltipSlotLabel->SetText(slotText);
+
+	Colour qualityColour = Colour(0.95f, 1.0f, 0.2f, 1.0f);
+	m_pTooltipNameLabel->SetColour(qualityColour);
+
+	// Set tooltip dimensions
+	m_tooltipWidth = 200;
+	m_tooltipHeight = 220;
+	m_tooltipDescBorder = 15;
+
+	int x;
+	int y;
+	Dimensions dimensions = pModButtonData->m_pModButton->GetDimensions();
+	x = m_modWindowWidth + dimensions.m_x - 180;
+	y = dimensions.m_y - 180;
+
+	m_pTooltipBackground_Common->SetDimensions(x, y, m_tooltipWidth, m_tooltipHeight);
+	m_pTooltipBackground_Uncommon->SetDimensions(x, y, m_tooltipWidth, m_tooltipHeight);
+	m_pTooltipBackground_Magical->SetDimensions(x, y, m_tooltipWidth, m_tooltipHeight);
+	m_pTooltipBackground_Rare->SetDimensions(x, y, m_tooltipWidth, m_tooltipHeight);
+	m_pTooltipBackground_Epic->SetDimensions(x, y, m_tooltipWidth, m_tooltipHeight);
+
+	int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_30(), "%s", m_pTooltipNameLabel->GetText().c_str());
+	m_pTooltipNameLabel->SetLocation(x + (int)(m_tooltipWidth*0.5f) - (int)(textWidth*0.5f), y + m_tooltipHeight - 35);
+
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_25(), "%s", m_pTooltipDescriptionLabel->GetText().c_str());
+	m_pTooltipDescriptionLabel->SetDimensions(x + m_tooltipDescBorder, y + m_tooltipDescBorder, m_tooltipWidth - (m_tooltipDescBorder * 2), m_tooltipHeight - (m_tooltipDescBorder * 2) - 35);
+
+	m_pTooltipSlotLabel->SetLocation(x + m_tooltipDescBorder, y + m_tooltipDescBorder);
+
+	textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_20(), "%s", m_pTooltipQualityLabel->GetText().c_str());
+	m_pTooltipQualityLabel->SetLocation(x + m_tooltipWidth - m_tooltipDescBorder - textWidth, y + m_tooltipDescBorder);
+
+	m_tooltipAppearDelayTimer = m_pFrontendManager->GetToolTipAppearDelay();
+
+	m_toolTipVisible = true;
+	m_toolTipComponentsAdded = false;
+}
+
+void ModMenu::HideTooltip()
+{
+	m_pModWindow->RemoveComponent(m_pTooltipBackground_Common);
+	m_pModWindow->RemoveComponent(m_pTooltipBackground_Uncommon);
+	m_pModWindow->RemoveComponent(m_pTooltipBackground_Magical);
+	m_pModWindow->RemoveComponent(m_pTooltipBackground_Rare);
+	m_pModWindow->RemoveComponent(m_pTooltipBackground_Epic);
+	m_pModWindow->RemoveComponent(m_pTooltipNameLabel);
+	m_pModWindow->RemoveComponent(m_pTooltipDescriptionLabel);
+	m_pModWindow->RemoveComponent(m_pTooltipSlotLabel);
+	//m_pModWindow->RemoveComponent(m_pTooltipQualityLabel);
+
+	m_toolTipVisible = false;
+}
+
 // Update
 void ModMenu::Update(float dt)
 {
 	FrontendPage::Update(dt);
+
+	UpdateToolTipAppear(dt);
 
 	if (VoxGame::GetInstance()->IsPaused() == false)
 	{
@@ -1167,6 +1551,28 @@ void ModMenu::ModButtonPressed(ModButtonData* pModButtonData)
 	{
 		string themeName = VoxGame::GetInstance()->GetModsManager()->GetHUDTextureTheme();
 		string tickIcon = "media/textures/gui/" + themeName + "/common/tick.tga";
-		pModButtonData->m_pModButton->AddIcon(m_pRenderer, tickIcon.c_str(), 32, 32, 32, 32, buttonWidth - 38, 4, 2.0f);
+		pModButtonData->m_pModButton->AddIcon(m_pRenderer, tickIcon.c_str(), 32, 32, 32, 32, buttonWidth - 38, 4, 3.25f);
 	}
+}
+
+void ModMenu::_ModButtonEntered(void *apData)
+{
+	ModButtonData* lpModButtonData = (ModButtonData*)apData;
+	lpModButtonData->m_pModMenu->ModButtonEntered(lpModButtonData);
+}
+
+void ModMenu::ModButtonEntered(ModButtonData* pModButtonData)
+{
+	ShowTooltip(pModButtonData);
+}
+
+void ModMenu::_ModButtonExited(void *apData)
+{
+	ModButtonData* lpModButtonData = (ModButtonData*)apData;
+	lpModButtonData->m_pModMenu->ModButtonExited(lpModButtonData);
+}
+
+void ModMenu::ModButtonExited(ModButtonData* pModButtonData)
+{
+	HideTooltip();
 }

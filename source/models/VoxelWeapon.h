@@ -210,7 +210,7 @@ public:
 	void Update(float dt);
 
 	// Rendering
-	void Render(bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour);
+	void Render(bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour);
 	void RenderPaperdoll();
 	void RenderWeaponTrails();
 

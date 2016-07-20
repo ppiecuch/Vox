@@ -1,7 +1,7 @@
 // ******************************************************************************
-// Filename:	VoxWindow.h
-// Project:	Vox
-// Author:	Steven Ball
+// Filename:    VoxWindow.h
+// Project:     Vox
+// Author:      Steven Ball
 //
 // Purpose:
 //   The Vox window class is an interface and wrapper around the glfw windows
@@ -64,8 +64,8 @@ public:
 	int GetCursorX();
 	int GetCursorY();
 	void SetCursorPosition(int x, int y);
-	void TurnCursorOff();
-	void TurnCursorOn(bool resetCursorPosition);
+	void TurnCursorOff(bool forceOff);
+	void TurnCursorOn(bool resetCursorPosition, bool forceOn);
 	bool IsCursorOn();
 
 	// Joysticks

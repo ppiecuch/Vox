@@ -2,6 +2,7 @@ uniform sampler2D texture;
    
 varying vec4 vTexCoord;
 uniform float blurSize;
+uniform bool applyBlueTint;
 
 void main(void)  
 {  
@@ -19,5 +20,11 @@ void main(void)
 	sum += texture2D(texture, vec2(vTexCoord.x + 3.0*blurSize, vTexCoord.y)) * 0.09;
 	sum += texture2D(texture, vec2(vTexCoord.x + 4.0*blurSize, vTexCoord.y)) * 0.05;
 
+	if(applyBlueTint)
+	{
+		float blueTintAmount = blurSize*200.0;
+		sum += vec4(0.05 ,0.05 ,0.7, 0.0) * blueTintAmount;
+	}
+	
 	gl_FragColor = sum;
 }

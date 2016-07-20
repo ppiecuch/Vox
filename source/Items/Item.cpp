@@ -11,6 +11,7 @@
 
 #include "Item.h"
 #include "ItemManager.h"
+#include "ItemSpawner.h"
 
 #include <algorithm>
 
@@ -39,7 +40,7 @@ Item::Item(Renderer* pRenderer, ChunkManager* pChunkManager, QubicleBinaryManage
 
 	m_erase = false;
 
-	m_radius = 1.0f;
+	m_radius = GetItemRadiusForType(m_itemType);
 
 	m_worldCollide = true;
 
@@ -54,6 +55,8 @@ Item::Item(Renderer* pRenderer, ChunkManager* pChunkManager, QubicleBinaryManage
 	m_autoDisappear = false;
 	m_autoDisappearTimer = 0.0f;
 
+	m_bCreateDyingLights = true;
+
 	m_droppedInventoryItem = NULL;
 
 	// Disappear animaton
@@ -65,6 +68,8 @@ Item::Item(Renderer* pRenderer, ChunkManager* pChunkManager, QubicleBinaryManage
 
 	m_interactCount = 0;
 	m_maxInteractCount = 1;
+
+	m_pParentItemSpawner = NULL;
 
 	m_gridPositionX = 0;
 	m_gridPositionY = 0;
@@ -82,6 +87,12 @@ Item::Item(Renderer* pRenderer, ChunkManager* pChunkManager, QubicleBinaryManage
 
 Item::~Item()
 {
+	// If we belong to a spawner, make sure we indicate that we were killed
+	if (m_pParentItemSpawner != NULL)
+	{
+		m_pParentItemSpawner->RemoveItemFromThisSpawner();
+	}
+
 	UnloadEffectsAndLights();
 
 	// Delete the voxel item
@@ -134,8 +145,11 @@ void Item::UnloadEffectsAndLights()
 
 			if(m_itemType != eItem_DroppedItem)
 			{
-				unsigned int lId;
-				m_pLightingManager->AddDyingLight(lightPos, lightRadius, lightDiffuseMultiplier, lightColour, 3.5f, &lId);
+				if (m_bCreateDyingLights)
+				{
+					unsigned int lId;
+					m_pLightingManager->AddDyingLight(lightPos, lightRadius, lightDiffuseMultiplier, lightColour, 3.5f, &lId);
+				}
 			}
 		}
 	}
@@ -268,6 +282,20 @@ void Item::LoadItem(const char* objectFilename)
 				m_pVoxelItem->SetParticleEffectId(i, -1);
 			}
 		}
+	}
+}
+
+// Item spawner
+void Item::SetItemSpawner(ItemSpawner* pSpawner)
+{
+	m_pParentItemSpawner = pSpawner;
+}
+
+void Item::RemoveItemSpawner(ItemSpawner* pSpawner)
+{
+	if (m_pParentItemSpawner == pSpawner)
+	{
+		m_pParentItemSpawner = NULL;
 	}
 }
 
@@ -494,6 +522,12 @@ const char* Item::GetItemTitle()
 	return m_itemTitle.c_str();
 }
 
+// Should we create dying lights when we unload
+void Item::SetCreateDyingLights(bool dyingLights)
+{
+	m_bCreateDyingLights = dyingLights;
+}
+
 // Grid
 void Item::UpdateGridPosition()
 {
@@ -690,6 +724,141 @@ vec3 Item::GetInteractionPosition()
 void Item::SetWorldCollide(bool collide)
 {
 	m_worldCollide = collide;
+}
+
+bool Item::CheckCollisions(vec3 positionCheck, vec3 previousPosition, vec3 *pNormal, vec3 *pMovement)
+{
+	float radius = GetRadius();
+
+	vec3 movementCache = *pMovement;
+
+	// World collisions
+	bool worldCollision = false;
+
+	vec3 floorPosition;
+	if (m_pChunkManager->FindClosestFloor(positionCheck, &floorPosition) == false)
+	{
+		*pMovement = vec3(0.0f, 0.0f, 0.0f);
+		return true;
+	}
+	else
+	{
+		int blockX, blockY, blockZ;
+		vec3 blockPos;
+		int numChecks = 1 + (int)(radius / (Chunk::BLOCK_RENDER_SIZE* 2.0f));
+		for (int x = -numChecks; x <= numChecks; x++)
+		{
+			for (int y = -numChecks; y <= numChecks; y++)
+			{
+				for (int z = -numChecks; z <= numChecks; z++)
+				{
+					*pNormal = vec3(0.0f, 0.0f, 0.0f);
+
+					Chunk* pChunk = GetCachedGridChunkOrFromPosition(positionCheck + vec3((Chunk::BLOCK_RENDER_SIZE*2.0f)*x, (Chunk::BLOCK_RENDER_SIZE*2.0f)*y, (Chunk::BLOCK_RENDER_SIZE*2.0f)*z));
+					bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(positionCheck.x + ((Chunk::BLOCK_RENDER_SIZE*2.0f)*x), positionCheck.y + ((Chunk::BLOCK_RENDER_SIZE*2.0f)*y), positionCheck.z + ((Chunk::BLOCK_RENDER_SIZE*2.0f)*z), &blockPos, &blockX, &blockY, &blockZ, &pChunk);
+
+					if (active == false)
+					{
+						if (pChunk == NULL || pChunk->IsSetup() == false)
+						{
+							*pMovement = vec3(0.0f, 0.0f, 0.0f);
+							worldCollision = false;
+						}
+					}
+					else if (active == true)
+					{
+						Plane3D planes[6];
+						planes[0] = Plane3D(vec3(-1.0f, 0.0f, 0.0f), vec3(Chunk::BLOCK_RENDER_SIZE, 0.0f, 0.0f));
+						planes[1] = Plane3D(vec3(1.0f, 0.0f, 0.0f), vec3(-Chunk::BLOCK_RENDER_SIZE, 0.0f, 0.0f));
+						planes[2] = Plane3D(vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, Chunk::BLOCK_RENDER_SIZE, 0.0f));
+						planes[3] = Plane3D(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, -Chunk::BLOCK_RENDER_SIZE, 0.0f));
+						planes[4] = Plane3D(vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 0.0f, Chunk::BLOCK_RENDER_SIZE));
+						planes[5] = Plane3D(vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, -Chunk::BLOCK_RENDER_SIZE));
+
+						float distance;
+						int inside = 0;
+						bool insideCache[6];
+
+						for (int i = 0; i < 6; i++)
+						{
+							vec3 pointToCheck = blockPos - previousPosition;
+							distance = planes[i].GetPointDistance(pointToCheck);
+
+							if (distance < -radius)
+							{
+								// Outside...
+								insideCache[i] = false;
+							}
+							else if (distance < radius)
+							{
+								// Intersecting..
+								insideCache[i] = true;
+							}
+							else
+							{
+								// Inside...
+								insideCache[i] = true;
+							}
+						}
+
+						for (int i = 0; i < 6; i++)
+						{
+							vec3 pointToCheck = blockPos - positionCheck;
+							distance = planes[i].GetPointDistance(pointToCheck);
+
+							if (distance < -radius)
+							{
+								// Outside...
+							}
+							else if (distance < radius)
+							{
+								// Intersecting..
+								inside++;
+								if (insideCache[i] == false)
+								{
+									*pNormal += planes[i].mNormal;
+								}
+							}
+							else
+							{
+								// Inside...
+								inside++;
+								if (insideCache[i] == false)
+								{
+									*pNormal += planes[i].mNormal;
+								}
+							}
+						}
+
+						if (inside == 6)
+						{
+							if (length(*pNormal) <= 1.0f)
+							{
+								if (length(*pNormal) > 0.0f)
+								{
+									*pNormal = normalize(*pNormal);
+								}
+
+								float dotResult = dot(*pNormal, *pMovement);
+								*pNormal *= dotResult;
+
+								*pMovement -= *pNormal;
+
+								worldCollision = true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (worldCollision)
+		return true;
+
+	*pMovement = movementCache;
+
+	return false;
 }
 
 // Bounding collision region
@@ -1008,26 +1177,6 @@ void Item::Interact()
 		}
 	}
 
-	// Door open/close animation
-	if(m_itemType == eItem_Door)
-	{
-		if(m_pVoxelItem->HasSubSectionAnimationFinished(0))
-		{
-			m_pVoxelItem->StartSubSectionAnimation();
-
-			if(m_itemInteracting)
-			{
-				SetCollisionEnabled(true);
-				m_itemInteracting = false;
-			}
-			else
-			{
-				SetCollisionEnabled(false);
-				m_itemInteracting = true;
-			}
-		}
-	}
-
 	// Chest open/close animation
 	if(m_itemType == eItem_Chest)
 	{
@@ -1078,7 +1227,7 @@ void Item::Interact()
 			vec3 pointOrigin = vec3(0.0f, 0.0f, 0.0f);
 			float r = 0.49f; float g = 0.44f; float b = 0.44f; float a = 1.0f;
 			vec3 spawnPos = GetCenter() + vec3(GetRandomNumber(-1, 1, 2)*0.5f, GetRandomNumber(-1, 1, 2)*0.5f, GetRandomNumber(-1, 1, 2)*0.5f);
-			BlockParticle* pParticle = m_pBlockParticleManager->CreateBlockParticle(spawnPos, gravity, 1.5f, pointOrigin, startScale, 0.0f, endScale, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, lifeTime, 0.0f, 0.0f, 0.0f, vec3(0.0f, 3.0f, 0.0f), vec3(1.85f, 3.0f, 1.85f), vec3(0.0f, 0.0f, 0.0f), vec3(180.0f, 180.0f, 180.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, vec3(0.0f, 0.0f, 0.0f), true, false, false, false, NULL);
+			BlockParticle* pParticle = m_pBlockParticleManager->CreateBlockParticle(spawnPos, spawnPos, gravity, 1.5f, pointOrigin, startScale, 0.0f, endScale, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, lifeTime, 0.0f, 0.0f, 0.0f, vec3(0.0f, 3.0f, 0.0f), vec3(1.85f, 3.0f, 1.85f), vec3(0.0f, 0.0f, 0.0f), vec3(180.0f, 180.0f, 180.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, vec3(0.0f, 0.0f, 0.0f), true, false, false, false, NULL);
 			if(pParticle != NULL)
 			{
 				pParticle->m_allowFloorSliding = true;
@@ -1156,7 +1305,7 @@ void Item::SpawnSubItems()
 	}
 }
 
-void Item::SeCurrentInteractCount(int currentInteract)
+void Item::SetCurrentInteractCount(int currentInteract)
 {
 	m_interactCount = currentInteract;
 }
@@ -1166,7 +1315,7 @@ int Item::GetCurrentInteractCount()
 	return m_interactCount;
 }
 
-void Item::SeMaxtInteractCount(int maxInteract)
+void Item::SetMaxtInteractCount(int maxInteract)
 {
 	m_maxInteractCount = maxInteract;
 }
@@ -1245,9 +1394,8 @@ void Item::UpdatePhysics(float dt)
 {
 	vec3 acceleration = (m_gravityDirection * 9.81f) * 4.0f;
 
-	// Integrate velocity and position
+	// Integrate velocity
 	m_velocity += acceleration * dt;
-	m_position += m_velocity * dt;
 
 	// Integrate angular velocity and rotation
 	vec3 angularAcceleration(0.0f, 0.0f, 0.0f);
@@ -1259,6 +1407,35 @@ void Item::UpdatePhysics(float dt)
 		int blockX, blockY, blockZ;
 		vec3 blockPos;
 
+		// Check collision
+		{
+			vec3 velocityToUse = m_velocity;
+			vec3 velAmount = velocityToUse*dt;
+			vec3 pNormal;
+			int numberDivision = 1;
+			while (length(velAmount) >= 1.0f)
+			{
+				numberDivision++;
+				velAmount = velocityToUse*(dt / numberDivision);
+			}
+			for (int i = 0; i < numberDivision; i++)
+			{
+				float dtToUse = (dt / numberDivision) + ((dt / numberDivision) * i);
+				vec3 posToCheck = GetCenter() + velocityToUse*dtToUse;
+				bool stepUp = false;
+				if (CheckCollisions(posToCheck, m_previousPosition, &pNormal, &velAmount))
+				{
+					// Reset velocity, we don't have any bounce
+					m_velocity = vec3(0.0f, 0.0f, 0.0f);
+					velocityToUse = vec3(0.0f, 0.0f, 0.0f);
+				}
+			}
+
+			// Integrate position
+			m_position += velocityToUse * dt;
+		}
+
+		// Owning chunks
 		if (m_pOwningChunk != NULL && m_pOwningChunk->IsSetup() && m_pOwningChunk->IsInsideChunk(m_position))
 		{
 			Chunk* pChunk = GetCachedGridChunkOrFromPosition(m_position);
@@ -1293,6 +1470,13 @@ void Item::UpdatePhysics(float dt)
 			}
 		}
 	}
+	else
+	{
+		// Integrate position
+		m_position += m_velocity * dt;
+	}
+
+	m_previousPosition = GetCenter();
 }
 
 void Item::UpdateTimers(float dt)
@@ -1499,7 +1683,7 @@ void Item::UpdateItemParticleEffects(float dt)
 				ParticleEffectPos += m_position;
 			}
 
-			m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos);
+			m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos, ParticleEffectPos);
 		}
 	}
 }
@@ -1581,15 +1765,15 @@ void Item::RenderDebug()
 	m_pRenderer->PopMatrix();
 	
 	// Render link to owning chunk
-	//if(m_pOwningChunk != NULL)
-	//{
-	//	m_pRenderer->PushMatrix();
-	//		m_pRenderer->EnableImmediateMode(IM_LINES);
-	//		m_pRenderer->ImmediateVertex(m_position.x, m_position.y, m_position.z);
-	//		m_pRenderer->ImmediateVertex(m_pOwningChunk->GetPosition().x, m_pOwningChunk->GetPosition().y, m_pOwningChunk->GetPosition().z);
-	//		m_pRenderer->DisableImmediateMode();
-	//	m_pRenderer->PopMatrix();
-	//}
+	if(m_pOwningChunk != NULL)
+	{
+		m_pRenderer->PushMatrix();
+			m_pRenderer->EnableImmediateMode(IM_LINES);
+			m_pRenderer->ImmediateVertex(m_position.x, m_position.y, m_position.z);
+			m_pRenderer->ImmediateVertex(m_pOwningChunk->GetPosition().x + Chunk::BLOCK_RENDER_SIZE*Chunk::CHUNK_SIZE, m_pOwningChunk->GetPosition().y + Chunk::BLOCK_RENDER_SIZE*Chunk::CHUNK_SIZE, m_pOwningChunk->GetPosition().z + Chunk::BLOCK_RENDER_SIZE*Chunk::CHUNK_SIZE);
+			m_pRenderer->DisableImmediateMode();
+		m_pRenderer->PopMatrix();
+	}
 
 	// Render collision regions
 	RenderCollisionRegions();

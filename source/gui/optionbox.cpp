@@ -459,6 +459,18 @@ void OptionBox::SetPressedOffset(int x, int y)
 	m_pressedOffsetY = y;
 }
 
+void OptionBox::SetLabelColour(Colour color)
+{
+	m_label.SetColour(color);
+}
+
+void OptionBox::SetNormalLabelColour(Colour normal)
+{
+	m_normalLabelColour = normal;
+
+	m_bChangeLabelText = true;
+}
+
 void OptionBox::SetHoverLabelColour(Colour hover)
 {
 	m_hoverLabelColour = hover;

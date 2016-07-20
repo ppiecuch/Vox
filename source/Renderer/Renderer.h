@@ -10,7 +10,7 @@
 // Revision History:
 //   Initial Revision - 12/10/15
 //
-// Copyright (c) 2005-2015, Steven Ball
+// Copyright (c) 2005-2016, Steven Ball
 // ******************************************************************************
 
 #pragma once
@@ -195,6 +195,8 @@ public:
 	bool BeginScene(bool pixel = true, bool depth = true, bool stencil = true);
 	void EndScene();
 	void SetColourMask(bool red, bool green, bool blue, bool alpha);
+	void SetClearColour(float red, float green, float blue, float alpha);
+	void SetClearColour(Colour col);
 
 	// Push / Pop matrix stack
 	void PushMatrix();
@@ -225,6 +227,10 @@ public:
 	vec3 GetWorldProjectionFromScreenCoordinates(int x, int y, float z);
 	void GetScreenCoordinatesFromWorldPosition(vec3 pos, int *x, int *y);
 
+	// Clip planes
+	void EnableClipPlane(unsigned int index, double eq1, double eq2, double eq3, double eq4);
+	void DisableClipPlane(unsigned int index);
+
 	// Camera functionality
 	void SetLookAtCamera(vec3 pos, vec3 target, vec3 up);
 
@@ -237,12 +243,20 @@ public:
 	void EnableMultiSampling();
 	void DisableMultiSampling();
 
+	// Vector normalize
+	void EnableVectorNormalize();
+	void DisableVectorNormalize();
+
 	// Depth testing
 	void EnableDepthTest(DepthTest lTestFunction);
 	void DisableDepthTest();
 	GLenum GetDepthTest(DepthTest lTest);
 	void EnableDepthWrite();
 	void DisableDepthWrite();
+
+	// Colour material
+	void EnableColourMaterial();
+	void DisableColourMaterial();
 
 	// Immediate mode
 	void EnableImmediateMode(ImmediateModePrimitive mode);
@@ -263,10 +277,10 @@ public:
 	void DrawSphericalSector(float lRadius, float angle, int lSectors, int lPoints);
 
 	// Text rendering
-	bool CreateFreeTypeFont(char *fontName, int fontSize, unsigned int *pID, bool noAutoHint = false);
-	bool RenderFreeTypeText(unsigned int fontID, float x, float y, float z, Colour colour, float scale, char *inText, ...);
-	int GetFreeTypeTextWidth(unsigned int fontID, char *inText, ...);
-	int GetFreeTypeTextHeight(unsigned int fontID, char *inText, ...);
+	bool CreateFreeTypeFont(const char *fontName, int fontSize, unsigned int *pID, bool noAutoHint = false);
+	bool RenderFreeTypeText(unsigned int fontID, float x, float y, float z, Colour colour, float scale, const char *inText, ...);
+	int GetFreeTypeTextWidth(unsigned int fontID, const char *inText, ...);
+	int GetFreeTypeTextHeight(unsigned int fontID, const char *inText, ...);
 	int GetFreeTypeTextAscent(unsigned int fontID);
 	int GetFreeTypeTextDescent(unsigned int fontID);
 
@@ -328,6 +342,7 @@ public:
 	unsigned int AddTriangleToMesh(unsigned int vertexId1, unsigned int vertexId2, unsigned int vertexId3, OpenGLTriangleMesh* pMesh);
 	void ModifyMeshAlpha(float alpha, OpenGLTriangleMesh* pMesh);
 	void ModifyMeshColour(float r, float g, float b, OpenGLTriangleMesh* pMesh);
+	void ConvertMeshColour(float r, float g, float b, float matchR, float matchG, float matchB, OpenGLTriangleMesh* pMesh);
 	void FinishMesh(unsigned int textureID, unsigned int materialID, OpenGLTriangleMesh* pMesh);
 	void RenderMesh(OpenGLTriangleMesh* pMesh);
 	void RenderMesh_NoColour(OpenGLTriangleMesh* pMesh);
@@ -362,8 +377,13 @@ public:
 	unsigned int GetNormalTextureFromFrameBuffer(unsigned int frameBufferId);
 	unsigned int GetDepthTextureFromFrameBuffer(unsigned int frameBufferId);
 
+	// Rendered information
+	void ResetRenderedStats();
+	int GetNumRenderedVertices();
+	int GetNumRenderedFaces();
+
 	// Shaders
-	bool LoadGLSLShader(char* vertexFile, char* fragmentFile, unsigned int *pID);
+	bool LoadGLSLShader(const char* vertexFile, const char* fragmentFile, unsigned int *pID);
 	void BeginGLSLShader(unsigned int shaderID);
 	void EndGLSLShader(unsigned int shaderID);
 	glShader* GetShader(unsigned int shaderID);
@@ -407,7 +427,9 @@ private:
 	unsigned int m_activeViewport;
 
 	// Frustums
-	vector<Frustum *> m_frustums; // Note : We store a frustum for each viewport, therefore viewport and frustum are closely linked (See viewport functions)
+	vector<Frustum *> m_frustums;
+	// Note : We store a frustum for each viewport, therefore viewport and
+	// frustum are closely linked (See viewport functions)
 
 	// Materials
 	vector<Material *> m_materials;
@@ -427,6 +449,10 @@ private:
 
 	// Frame buffers
 	vector<FrameBuffer*> m_vFrameBuffers;
+
+	// Rendered information
+	int m_numRenderedVertices;
+	int m_numRenderedFaces;
 
 	// Shaders
 	glShaderManager ShaderManager;

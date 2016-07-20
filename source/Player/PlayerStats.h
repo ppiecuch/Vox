@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "PlayerClass.h"
+
 class Player;
 
 #include <string>
@@ -37,6 +39,7 @@ public:
 	void ExportStats(string playerName);
 	
 	// Accessors
+	PlayerClass GetClass();
 	int GetLevel();
 	int GetExperience();
 	int GetMaxExperience();
@@ -48,7 +51,8 @@ public:
 	int GetArmorStat();
 	int GetLuckStat();
 
-	// Setting
+	// Setters
+	void SetClass(PlayerClass playerClass);
 	void GiveExperience(int amount);
 	void SetNumPointsAvailable(int numPoints);
 	void SetStrengthStat(int stat);
@@ -77,13 +81,20 @@ private:
 	// Player name
 	string m_name;
 
+	// Player class
+	PlayerClass m_class;
+
+	// Level
 	int m_level;
 
+	// Experience
 	int m_experience;
 	int m_maxExperience;
 
+	// Num points to allocate to stats
 	int m_numPointsAvailable;
 
+	// Stats
 	int m_strengthStat;
 	int m_dexterityStat;
 	int m_intelligenceStat;

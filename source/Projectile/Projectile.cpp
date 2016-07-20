@@ -52,6 +52,10 @@ Projectile::Projectile(Renderer* pRenderer, ChunkManager* pChunkManager, Qubicle
 	// World collision flag
 	m_worldCollisionEnabled = true;
 
+	// Explosion
+	m_explodeWorld = false;
+	m_explosionRadius = 1.0f;
+
 	// Projectile type
 	m_attackEnemies = false;
 	m_attackPlayer = false;
@@ -392,6 +396,12 @@ bool Projectile::IsReturnToPlayer()
 	return m_returnToPlayer;
 }
 
+void Projectile::SetExplodingProjectile(bool exploding, float radius)
+{
+	m_explodeWorld = exploding;
+	m_explosionRadius = radius;
+}
+
 void Projectile::SetOwner(Player* pPlayer, NPC* pNPC, Enemy* pEnemy)
 {
 	m_pOwnedPlayer = pPlayer;
@@ -438,6 +448,11 @@ void Projectile::Explode()
 			QubicleBinary* pQubicleModel = pAnimatedSection->m_pVoxelObject->GetQubicleModel();
 			m_pBlockParticleManager->ExplodeQubicleBinary(pQubicleModel, m_renderScale, 100);
 		}
+	}
+
+	if (m_explodeWorld)
+	{
+		m_pChunkManager->ExplodeSphere(GetCenter(), m_explosionRadius);
 	}
 
 	m_erase = true;
@@ -751,7 +766,7 @@ void Projectile::UpdateProjectileParticleEffects(float dt)
 				ParticleEffectPos += m_position;
 			}
 
-			m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos);
+			m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos, ParticleEffectPos);
 		}
 	}
 }

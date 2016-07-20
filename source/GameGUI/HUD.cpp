@@ -43,8 +43,6 @@ HUD::HUD(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* pFrontendManager
 	m_pRespawnButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Respawn", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pRespawnButton->SetLabelOffset(0, 3);
 	m_pRespawnButton->SetPressedOffset(0, -4);
-	//m_pRespawnButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pRespawnButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pRespawnButton->SetCallBackFunction(_RespawnPressed);
 	m_pRespawnButton->SetCallBackData(this);
 
@@ -421,6 +419,12 @@ void HUD::SetWindowDimensions(int windowWidth, int windowHeight)
 	//m_pCraftingCheckBox->SetDimensions(m_windowWidth-windowBorder-checkboxSize*4-spacer*3, 10, checkboxSize, checkboxSize);
 	//m_pSkillsCheckBox->SetDimensions(m_windowWidth-windowBorder-checkboxSize*5-spacer*4, 10, checkboxSize, checkboxSize);
 	//m_pPetCheckBox->SetDimensions(m_windowWidth-windowBorder-checkboxSize*6-spacer*5, 10, checkboxSize, checkboxSize);
+
+	// Make sure to update the text locations for various HUD text
+	m_updatePlayerHealthTextLocation = true;
+	m_updatePlayerMagicTextLocation = true;
+	m_updatePlayerExperienceTextLocation = true;
+	m_updateEnemyTextLocation = true;
 }
 
 // Skinning the GUI
@@ -456,6 +460,13 @@ void HUD::SkinGUI()
 	m_pEnemyHealthFillerIcon->SetIcon(iconName);
 	iconName = "media/textures/gui/" + themeName + "/HUD/enemy_health_filler_background.tga";
 	m_pEnemyHealthFillerBackgroundIcon->SetIcon(iconName);
+
+	m_pFrontendManager->SetButtonIcons(m_pRespawnButton, ButtonSize_225x75);
+	m_pRespawnButton->SetDimensions((int)((m_windowWidth*0.5f) - (int)(m_respawnButtonWidth*0.5f)), (int)((m_windowHeight*0.5f) - (m_respawnButtonHeight*0.5f) + 75), (int)m_respawnButtonWidth, (int)m_respawnButtonHeight);
+
+	m_pRespawnButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pRespawnButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pRespawnButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void HUD::UnSkinGUI()
@@ -733,7 +744,7 @@ void HUD::Update(float dt)
 
 	// Portrait dynamic icon
 	// Set the dynamic icon
-	m_pDynamicPortraitIcon->SetDynamicTexture(VoxGame::GetInstance()->GetDynamicPaperdollTexture());
+	m_pDynamicPortraitIcon->SetDynamicTexture(VoxGame::GetInstance()->GetDynamicPortraitTexture());
 
 	// Update the checkboxes for the GUI panels if open or not
 	// TODO : Checkboxes for GUI panels on the HUD
@@ -1093,10 +1104,10 @@ void HUD::_DeathTextFinished(void *apData)
 
 void HUD::DeathTextFinished()
 {
-	//m_pRespawnButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pRespawnButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 	m_pGUI->AddComponent(m_pRespawnButton);
 
-	VoxGame::GetInstance()->TurnCursorOn(true);
+	VoxGame::GetInstance()->TurnCursorOn(true, false);
 }
 
 void HUD::_RespawnPressed(void *apData)
@@ -1114,7 +1125,7 @@ void HUD::RespawnPressed()
 	VoxGame::GetInstance()->PlayerRespawned();
 	VoxGame::GetInstance()->InitializeCameraRotation();
 
-	VoxGame::GetInstance()->TurnCursorOff();
+	VoxGame::GetInstance()->TurnCursorOff(false);
 }
 
 void HUD::_LevelUpTextFinished(void *apData)

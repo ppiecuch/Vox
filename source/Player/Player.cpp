@@ -52,6 +52,10 @@ Player::~Player()
 
 	delete m_pPlayerStats;
 
+	if (m_pCharacterBackup != NULL)
+	{
+		m_pCharacterBackup->SetNullLinkage(m_pVoxelCharacter->GetQubicleModel());
+	}
 	delete m_pVoxelCharacter;
 	if (m_pCharacterBackup != NULL)
 	{
@@ -119,6 +123,8 @@ VoxelCharacter* Player::GetVoxelCharacter()
 // Player reset
 void Player::ResetPlayer()
 {
+	m_class = PlayerClass_Debug;
+
 	m_forward = vec3(0.0f, 0.0f, 1.0f);
 	m_right = vec3(1.0f, 0.0f, 0.0f);
 	m_up = vec3(0.0f, 1.0f, 0.0f);
@@ -146,6 +152,9 @@ void Player::ResetPlayer()
 	// Ground check
 	m_bIsOnGround = false;
 	m_groundCheckTimer = 0.0f;
+
+	// Floor particles
+	m_floorParticleTimer = 0.25f;
 
 	// Jumping
 	m_bCanJump = true;
@@ -218,6 +227,9 @@ void Player::ResetPlayer()
 	m_chargeAmount = 0.0f;
 	m_chargeTime = 1.0f;
 
+	// Block selection
+	m_blockSelection = false;
+
 	// Player stats
 	m_pPlayerStats = new PlayerStats(this);
 	m_strengthModifier = 0;
@@ -230,6 +242,11 @@ void Player::ResetPlayer()
 	// Initial equipped state
 	m_equippedProperties = 0;
 	SetNormal();
+
+	// Footstep sounds
+	m_footstepSoundTimer = 0.0f;
+	m_footstepSoundDistance = 0.5f;
+	m_footstepSoundIndex = 0;
 
 	// Animation params
 	for (int i = 0; i < AnimationSections_NUMSECTIONS; i++)
@@ -245,6 +262,18 @@ void Player::ResetPlayer()
 }
 
 // Accessors / Setters
+void Player::SetClass(PlayerClass ePlayerClass)
+{
+	m_class = ePlayerClass;
+
+	m_pPlayerStats->SetClass(m_class);
+}
+
+PlayerClass Player::GetClass()
+{
+	return m_class;
+}
+
 void Player::SetName(string name)
 {
 	m_name = name;
@@ -273,6 +302,11 @@ void Player::SetModelname(string modelName)
 string Player::GetModelName()
 {
 	return m_modelName;
+}
+
+void Player::SetPosition(vec3 pos)
+{
+	m_position = pos;
 }
 
 void Player::SetRespawnPosition(vec3 pos)
@@ -383,7 +417,7 @@ void Player::LoadCharacter(string characterName, bool fromCharacterSelectScreen)
 		sprintf(characterFilename, "media/gamedata/models/%s/%s.character", m_type.c_str(), m_modelName.c_str());
 	}
 
-	m_pVoxelCharacter->LoadVoxelCharacter(m_type.c_str(), qbFilename, ms3dFilename, animListFilename, facesFilename, characterFilename, characterBaseFolder);
+	m_pVoxelCharacter->LoadVoxelCharacter(m_type.c_str(), qbFilename, ms3dFilename, animListFilename, facesFilename, characterFilename, characterBaseFolder, true);
 
 	m_pVoxelCharacter->SetBreathingAnimationEnabled(true);
 	m_pVoxelCharacter->SetWinkAnimationEnabled(true);
@@ -513,8 +547,15 @@ void Player::UnloadWeapon(bool left)
 }
 
 // Equipping items
-void Player::EquipItem(InventoryItem* pItem)
+void Player::EquipItem(InventoryItem* pItem, bool supressAudio)
 {
+	if (m_crafting)
+	{
+		// Don't allow to change the equipped items if we are crafting
+		return;
+	}
+
+	bool l_bEquipWeapon = false;
 	switch (pItem->m_equipSlot)
 	{
 	case EquipSlot_LeftHand:
@@ -523,23 +564,41 @@ void Player::EquipItem(InventoryItem* pItem)
 
 		switch (pItem->m_itemType)
 		{
-		case InventoryType_Weapon_Dagger: { SetDagger(true); } break;
-		case InventoryType_Weapon_Shield: { SetShield(true); } break;
-		case InventoryType_Weapon_Bow:
+			case InventoryType_Weapon_Dagger:
 			{
-				SetBow(true);
+				SetDagger(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", true);
 				break;
 			}
-		case InventoryType_Weapon_Torch: { SetTorch(true); } break;
-		case InventoryType_Weapon_SpellHands:
+			case InventoryType_Weapon_Shield:
+			{
+				SetShield(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", true);
+				break;
+			}
+			case InventoryType_Weapon_Bow:
+			{
+				SetBow(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", true);
+				break;
+			}
+			case InventoryType_Weapon_Torch:
+			{
+				SetTorch(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", true);
+				break;
+			}
+			case InventoryType_Weapon_SpellHands:
 			{
 				SetSpellHands(true);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "HandSpellCastPose", 0.25f);
 				m_pVoxelCharacter->SetQubicleMatrixRender("Left_Hand", false);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("HandSpellCastPose", true);
 				break;
 			}
 		}
 
+		// Add a quiver to the players back
 		if (pItem->m_itemType == InventoryType_Weapon_Bow)
 		{
 			VoxelWeapon* pNewEquipment = new VoxelWeapon(m_pRenderer, m_pQubicleBinaryManager);
@@ -551,6 +610,8 @@ void Player::EquipItem(InventoryItem* pItem)
 			pQuiverMatrix->m_boneIndex = m_pVoxelCharacter->GetBodyBoneIndex();
 			m_pVoxelCharacter->AddQubicleMatrix(pQuiverMatrix, false);
 		}
+
+		l_bEquipWeapon = true;
 	}
 	break;
 	case EquipSlot_RightHand:
@@ -559,39 +620,116 @@ void Player::EquipItem(InventoryItem* pItem)
 
 		switch (pItem->m_itemType)
 		{
-		case InventoryType_Item: { SetItemPlacing(true); } break;
-		case InventoryType_Scenery: { SetSceneryPlacing(true); } break;
-		case InventoryType_Block: { SetBlockPlacing(true); } break;
-		case InventoryType_Weapon_Sword: { SetSword(true); } break;
-		case InventoryType_Weapon_Dagger: { SetDagger(true); } break;
-		case InventoryType_Weapon_Axe: { SetAxe(true); } break;
-		case InventoryType_Weapon_Hammer: { SetHammer(true); } break;
-		case InventoryType_Weapon_Mace: { SetMace(true); } break;
-		case InventoryType_Weapon_Sickle: { SetSickle(true); } break;
-		case InventoryType_Weapon_2HandedSword:
+			case InventoryType_Item:
+			{
+				SetItemPlacing(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Scenery:
+			{
+				SetSceneryPlacing(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Block:
+			{
+				SetBlockPlacing(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Sword:
+			{
+				SetSword(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Dagger:
+			{
+				SetDagger(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Axe:
+			{
+				SetAxe(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Hammer:
+			{
+				SetHammer(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Mace:
+			{
+				SetMace(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Sickle:
+			{
+				SetSickle(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_2HandedSword:
 			{
 				Set2HandedSword(true);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "2HandedSwordPose", 0.25f);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("2HandedSwordPose", false);
 				break;
 			}
-		case InventoryType_Weapon_Boomerang: { SetBoomerang(true); m_bCanThrowWeapon = true; } break;
-		case InventoryType_Weapon_Bomb: { SetBomb(true); } break;
-		case InventoryType_Weapon_Staff:
+			case InventoryType_Weapon_Boomerang:
+			{
+				SetBoomerang(true);
+				m_bCanThrowWeapon = true;
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Bomb:
+			{
+				SetBomb(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Staff:
 			{
 				SetStaff(true);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "StaffPose", 0.25f);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("StaffPose", false);
 				break;
 			}
-		case InventoryType_Weapon_Wand: { SetWand(true); } break;
-		case InventoryType_Weapon_Pickaxe: { SetPickaxe(true); } break;
-		case InventoryType_Weapon_SpellHands:
+			case InventoryType_Weapon_Wand:
+			{
+				SetWand(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("TargetPose", false);
+				break;
+			}
+			case InventoryType_Weapon_Pickaxe:
+			{
+				SetPickaxe(true);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
+				break;
+			}
+			case InventoryType_Weapon_SpellHands:
 			{
 				SetSpellHands(true);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "HandSpellCastPose", 0.25f);
 				m_pVoxelCharacter->SetQubicleMatrixRender("Right_Hand", false);
+				m_pVoxelCharacter->PlayAnimationOnPaperDoll("HandSpellCastPose", false);
 				break;
 			}
 		}
+
+		// Set new attack radius
+		if (m_pVoxelCharacter->GetRightWeapon() != NULL)
+		{
+			m_attackRadius = m_pVoxelCharacter->GetRightWeapon()->GetWeaponRadius();
+		}
+
+		l_bEquipWeapon = true;
 	}
 	break;
 	case EquipSlot_Head:
@@ -727,6 +865,18 @@ void Player::EquipItem(InventoryItem* pItem)
 	break;
 	}
 
+	if (supressAudio == false)
+	{
+		if (l_bEquipWeapon)
+		{
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipSword);
+		}
+		else
+		{
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipCloth);
+		}
+	}
+
 	if (VoxGame::GetInstance()->GetCameraMode() == CameraMode_FirstPerson)
 	{
 		// Make sure we set (force) the initial weapons alpha if we equip while in first person mode.
@@ -737,8 +887,14 @@ void Player::EquipItem(InventoryItem* pItem)
 	RefreshStatModifierCacheValues();
 }
 
-void Player::UnequipItem(EquipSlot equipSlot)
+void Player::UnequipItem(EquipSlot equipSlot, bool left, bool right)
 {
+	if (m_crafting)
+	{
+		// Don't allow to change the equipped items if we are crafting
+		return;
+	}
+
 	switch (equipSlot)
 	{
 	case EquipSlot_LeftHand:
@@ -757,6 +913,10 @@ void Player::UnequipItem(EquipSlot equipSlot)
 
 		m_pVoxelCharacter->SetQubicleMatrixRender("Left_Hand", true);
 
+		m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.25f);
+		m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", true);
+
+		// Remove quiver
 		m_pVoxelCharacter->RemoveQubicleMatrix("Quiver");
 	}
 	break;
@@ -790,6 +950,7 @@ void Player::UnequipItem(EquipSlot equipSlot)
 		m_pVoxelCharacter->SetQubicleMatrixRender("Right_Hand", true);
 
 		m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.25f);
+		m_pVoxelCharacter->PlayAnimationOnPaperDoll("BindPose", false);
 	}
 	break;
 	case EquipSlot_Head:
@@ -827,13 +988,19 @@ void Player::UnequipItem(EquipSlot equipSlot)
 	break;
 	case EquipSlot_Hand:
 	{
-		QubicleMatrix* pRightHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Hand");
-		pRightHandMatrix->m_boneIndex = m_pVoxelCharacter->GetRightHandBoneIndex();
-		m_pVoxelCharacter->AddQubicleMatrix(pRightHandMatrix, false);
+		if (right)
+		{
+			QubicleMatrix* pRightHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Hand");
+			pRightHandMatrix->m_boneIndex = m_pVoxelCharacter->GetRightHandBoneIndex();
+			m_pVoxelCharacter->AddQubicleMatrix(pRightHandMatrix, false);
+		}
 
-		QubicleMatrix* pLeftHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Hand");
-		pLeftHandMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftHandBoneIndex();
-		m_pVoxelCharacter->AddQubicleMatrix(pLeftHandMatrix, false);
+		if (left)
+		{
+			QubicleMatrix* pLeftHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Hand");
+			pLeftHandMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftHandBoneIndex();
+			m_pVoxelCharacter->AddQubicleMatrix(pLeftHandMatrix, false);
+		}
 
 		char characterFilename[128];
 		sprintf(characterFilename, "media/gamedata/characters/%s/%s.character", m_type.c_str(), m_modelName.c_str());
@@ -843,13 +1010,19 @@ void Player::UnequipItem(EquipSlot equipSlot)
 	break;
 	case EquipSlot_Feet:
 	{
-		QubicleMatrix* pRightFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Foot");
-		pRightFootMatrix->m_boneIndex = m_pVoxelCharacter->GetRightFootBoneIndex();
-		m_pVoxelCharacter->AddQubicleMatrix(pRightFootMatrix, false);
+		if (right)
+		{
+			QubicleMatrix* pRightFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Foot");
+			pRightFootMatrix->m_boneIndex = m_pVoxelCharacter->GetRightFootBoneIndex();
+			m_pVoxelCharacter->AddQubicleMatrix(pRightFootMatrix, false);
+		}
 
-		QubicleMatrix* pLeftFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Foot");
-		pLeftFootMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftFootBoneIndex();
-		m_pVoxelCharacter->AddQubicleMatrix(pLeftFootMatrix, false);
+		if (left)
+		{
+			QubicleMatrix* pLeftFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Foot");
+			pLeftFootMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftFootBoneIndex();
+			m_pVoxelCharacter->AddQubicleMatrix(pLeftFootMatrix, false);
+		}
 
 		char characterFilename[128];
 		sprintf(characterFilename, "media/gamedata/characters/%s/%s.character", m_type.c_str(), m_modelName.c_str());
@@ -1082,6 +1255,85 @@ bool Player::CheckCollisions(vec3 positionCheck, vec3 previousPosition, vec3 *pN
 	return false;
 }
 
+// Selection
+bool Player::GetSelectionBlock(vec3 *blockPos, int* chunkIndex, int* blockX, int* blockY, int* blockZ)
+{
+	float distance = 0.0f;
+	bool collides = false;
+	int interations = 0;
+	float increments = 0.025f;
+
+	while (collides == false && interations < 110)
+	{
+		vec3 testPos = GetCenter() + PLAYER_CENTER_OFFSET + normalize(m_cameraForward) * distance;
+
+		Chunk* pChunk = NULL;
+		bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(testPos.x, testPos.y, testPos.z, blockPos, blockX, blockY, blockZ, &pChunk);
+		if (active == true)
+		{
+			collides = true;
+		}
+
+		distance += increments;
+		interations++;
+	}
+
+	return collides;
+}
+
+bool Player::GetPlacementBlock(vec3 *blockPos, int* chunkIndex, int* blockX, int* blockY, int* blockZ)
+{
+	float distance = 0.0f;
+	bool collides = false;
+	int interations = 0;
+	float increments = 0.025f;
+
+	while (collides == false && interations < 175)
+	{
+		vec3 testPos = GetCenter() + PLAYER_CENTER_OFFSET + normalize(m_cameraForward) * distance;
+
+		Chunk* pChunk = NULL;
+		bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(testPos.x, testPos.y, testPos.z, blockPos, blockX, blockY, blockZ, &pChunk);
+		if (active == true)
+		{
+			// Get an empty block position
+			vec3 EmptyPos = testPos - normalize(m_cameraForward) * Chunk::BLOCK_RENDER_SIZE;
+			bool active2 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x, EmptyPos.y, EmptyPos.z, blockPos, blockX, blockY, blockZ, &pChunk);
+			Chunk* pChunk = m_pChunkManager->GetChunkFromPosition(EmptyPos.x, EmptyPos.y, EmptyPos.z);
+
+			if (pChunk != NULL && active2 == false)
+			{
+				vec3 blockPosTest;
+				int blockXTest;
+				int blockYTest;
+				int blockZTest;
+				bool pBlock1 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x - (Chunk::BLOCK_RENDER_SIZE*2.0f), EmptyPos.y, EmptyPos.z, &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+				bool pBlock2 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x + (Chunk::BLOCK_RENDER_SIZE*2.0f), EmptyPos.y, EmptyPos.z, &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+				bool pBlock3 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x, EmptyPos.y - (Chunk::BLOCK_RENDER_SIZE*2.0f), EmptyPos.z, &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+				bool pBlock4 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x, EmptyPos.y + (Chunk::BLOCK_RENDER_SIZE*2.0f), EmptyPos.z, &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+				bool pBlock5 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x, EmptyPos.y, EmptyPos.z - (Chunk::BLOCK_RENDER_SIZE*2.0f), &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+				bool pBlock6 = m_pChunkManager->GetBlockActiveFrom3DPosition(EmptyPos.x, EmptyPos.y, EmptyPos.z + (Chunk::BLOCK_RENDER_SIZE*2.0f), &blockPosTest, &blockXTest, &blockYTest, &blockZTest, &pChunk);
+
+				// ONLY allow non-diagonal block placements
+				if (pBlock1 == true || pBlock2 == true || pBlock3 == true || pBlock4 == true || pBlock5 == true || pBlock6 == true)
+				{
+					vec3 dist = (*blockPos) - m_position + PLAYER_CENTER_OFFSET;
+					//dist.y = 0.0f;
+					if (length(dist) > m_radius)
+					{
+						collides = true;
+					}
+				}
+			}
+		}
+
+		distance += increments;
+		interations++;
+	}
+
+	return collides;
+}
+
 // World
 void Player::UpdateGridPosition()
 {
@@ -1175,14 +1427,14 @@ void Player::SetCameraRight(vec3 right)
 }
 
 // Loading configuration and settings for the game
-void Player::LoadDefaultCharacterSettings()
+void Player::LoadCharacterSettings()
 {
 	// Remove supress export
 	m_pInventoryManager->SetSupressExport(false);
 	m_pActionBar->SetSupressExport(false);
 	m_pPlayerStats->SetSupressExport(false);
 
-	m_pInventoryManager->LoadDefaultInventory(m_name, true);
+	m_pInventoryManager->LoadInventory(m_name, m_class, true);
 	m_pInventoryManager->ExportInventory(m_name);
 	m_pActionBar->ExportActionBar(m_name);
 
@@ -1209,6 +1461,7 @@ void Player::StartGame()
 
 	// Import the player stats
 	m_pPlayerStats->ImportStats(m_name);
+	SetClass(m_pPlayerStats->GetClass());
 
 	// Make sure to set the chunk loading from the player position
 	int gridX;
@@ -1285,13 +1538,40 @@ vec3 Player::MoveAbsolute(vec3 direction, const float speed, bool shouldChangeFo
 	// Change to run animation
 	if (m_bIsChargingAttack == false)
 	{
-		if (IsStaff())
+		if (m_pTargetEnemy == NULL)
 		{
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_Legs_Feet, "StaffRun", 0.01f);
+			if (IsStaff())
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_Legs_Feet, "StaffRun", 0.01f);
+			}
+			else
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_Legs_Feet, "Run", 0.01f);
+			}
 		}
 		else
 		{
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_Legs_Feet, "Run", 0.01f);
+			if (m_bIsIdle)
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "Run", 0.01f);
+			}
+			else
+			{
+				if (m_animationFinished[AnimationSections_Head_Body])
+				{
+					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "TargetPose", 0.1f);
+				}
+				if (m_animationFinished[AnimationSections_Left_Arm_Hand] && m_bCanAttackLeft)
+				{
+					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "TargetPose", 0.1f);
+				}
+				if (m_animationFinished[AnimationSections_Right_Arm_Hand] && m_bCanAttackRight)
+				{
+					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "TargetPose", 0.1f);
+				}
+
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, true, AnimationSections_Legs_Feet, "Run", 0.01f);
+			}
 		}
 	}
 	else
@@ -1300,6 +1580,21 @@ vec3 Player::MoveAbsolute(vec3 direction, const float speed, bool shouldChangeFo
 		{
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "Run", 0.01f);
 		}
+	}
+
+	// Create some floor 'dust' particles as we move
+	CreateFloorParticles();
+
+	// Footstep sounds
+	m_footstepSoundDistance -= fabs(speed);
+	if (m_footstepSoundTimer <= 0.0f && m_footstepSoundDistance <= 0.0f && m_bCanJump)
+	{
+		int footStepSound = (int)eSoundEffect_FootStep01 + m_footstepSoundIndex;
+		VoxGame::GetInstance()->PlaySoundEffect((eSoundEffect)footStepSound);
+		m_footstepSoundIndex = GetRandomNumber(0, 3);
+
+		m_footstepSoundTimer = 0.3f + GetRandomNumber(-10, 10, 1)*0.002f;
+		m_footstepSoundDistance = 1.75f;
 	}
 
 	m_bIsIdle = false;
@@ -1354,28 +1649,92 @@ void Player::StopMoving()
 
 			if (m_bIsChargingAttack == false)
 			{
-				if (CanAttackLeft() && CanAttackRight())
+				if (m_pTargetEnemy == NULL)
 				{
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "BindPose", 0.15f);
-				}
-				else if (CanAttackLeft())
-				{
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.15f);
-				}
-				else if (CanAttackRight())
-				{
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.15f);
-				}
+					if (CanAttackLeft() && CanAttackRight())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "BindPose", 0.15f);
+					}
+					else if (CanAttackLeft())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.15f);
+					}
+					else if (CanAttackRight())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.15f);
+					}
 
-				if (IsSpellHands())
-				{
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "HandSpellCastPose", 0.15f);
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "HandSpellCastPose", 0.15f);
+					if (m_bCanInteruptCombatAnim)
+					{
+						if (Is2HandedSword())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "2HandedSwordPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "2HandedSwordPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "2HandedSwordPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "2HandedSwordPose", 0.15f);
+						}
+						else if (IsStaff())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "StaffPose", 0.15f);
+						}
+						else if (IsSpellHands())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "HandSpellCastPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "HandSpellCastPose", 0.15f);
+						}
+						else
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.15f);
+						}
+					}
+					else
+					{
+						if (Is2HandedSword())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "2HandedSwordPose", 0.15f);
+						}
+						else if (IsSword())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "2HandedSwordPose", 0.15f);
+						}
+						else if (IsStaff())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "BindPose", 0.15f);
+						}
+						else if (IsPickaxe())
+						{
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.15f);
+							m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "BindPose", 0.15f);
+						}
+					}
 				}
-
-				if (m_bCanInteruptCombatAnim)
+				else
 				{
-					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "BindPose", 0.15f);
+					if (CanAttackLeft() && CanAttackRight())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "BindPose", 0.15f);
+					}
+					else if (CanAttackLeft())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.15f);
+					}
+					else if (CanAttackRight())
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.15f);
+					}
+
+					if (m_bCanInteruptCombatAnim)
+					{
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "TargetPose", 0.15f);
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Legs_Feet, false, AnimationSections_Legs_Feet, "TargetPose", 0.15f);
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "TargetPose", 0.15f);
+						m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "TargetPose", 0.15f);
+					}
 				}
 			}
 			else
@@ -1388,7 +1747,7 @@ void Player::StopMoving()
 
 void Player::Jump()
 {
-	if (m_bCanJump == false)
+	if (m_bCanJump == false && m_pChunkManager->IsUnderWater(GetCenter()) == false)
 	{
 		return;
 	}
@@ -1398,7 +1757,7 @@ void Player::Jump()
 		return;
 	}
 
-	if (m_bIsOnGround == false)
+	if (m_bIsOnGround == false && m_pChunkManager->IsUnderWater(GetCenter()) == false)
 	{
 		return;
 	}
@@ -1411,7 +1770,13 @@ void Player::Jump()
 	m_bCanJump = false;
 	m_jumpTimer = 0.3f;
 
-	m_velocity += m_up * 14.0f;
+	float jumpMultiplier = 14.0f;
+	if (m_pChunkManager->IsUnderWater(GetCenter()))
+	{
+		jumpMultiplier = 5.0f;
+	}
+
+	m_velocity += m_up * jumpMultiplier;
 
 	// Change to jump animation
 	if (m_bIsChargingAttack == false)
@@ -1449,6 +1814,50 @@ void Player::DisableMoveToTargetPosition()
 void Player::SetLookAtTargetAfterMoveToPosition(vec3 lookAt)
 {
 	m_lookAtPositionAfterMoveToTarget = lookAt;
+}
+
+void Player::CreateFloorParticles()
+{
+	if (m_bIsOnGround == false)
+	{
+		return;
+	}
+
+	if (m_floorParticleTimer > 0.0f)
+	{
+		return;
+	}
+
+	vec3 floorPosition;
+	if (m_pChunkManager->FindClosestFloor(GetCenter(), &floorPosition))
+	{
+		vec3 blockPosition = floorPosition - vec3(0.0f, Chunk::BLOCK_RENDER_SIZE, 0.0f);
+
+		int blockX, blockY, blockZ;
+		vec3 blockPos;
+		Chunk* pChunk = NULL;
+		bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(blockPosition.x, blockPosition.y, blockPosition.z, &blockPos, &blockX, &blockY, &blockZ, &pChunk);
+
+		if (active && pChunk != NULL)
+		{
+			float r = 1.0f;
+			float g = 1.0f;
+			float b = 1.0f;
+			float a = 1.0f;
+			pChunk->GetColour(blockX, blockY, blockZ, &r, &g, &b, &a);
+
+			vec3 spawnPosition = blockPosition + vec3(0.0f, Chunk::BLOCK_RENDER_SIZE, 0.0f);
+			float randomNum = GetRandomNumber(0, 100, 0);
+			spawnPosition += GetRightVector() * 0.25f * ((randomNum < 50) ? -1.0f : 1.0f);
+			m_pBlockParticleManager->CreateBlockParticle(spawnPosition, spawnPosition, vec3(0.0f, -1.0f, 0.0f), 1.0f, spawnPosition, 0.125f, 0.5f, 0.125f, 0.5f,
+				r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f,
+				vec3(0.0f, 3.0f, 0.0f), vec3(2.0f, 1.0f, 2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+				true, vec3(0.0f, 0.0f, 0.0f), true, false, true, false, NULL);
+		}
+	}
+
+	float randomNumber = GetRandomNumber(0, 100, 2);
+	m_floorParticleTimer = randomNumber * 0.0025f;
 }
 
 // Dead
@@ -1694,7 +2103,7 @@ void Player::SetCraftingItem(bool crafting)
 	if (crafting)
 	{
 		UnloadWeapon(false);
-		LoadWeapon(false, "media/gamedata/weapons/Hammer/Hammer.weapon");
+		LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_Hammer));
 	}
 	else
 	{
@@ -1714,6 +2123,11 @@ void Player::SetCraftingItem(bool crafting)
 			UnloadWeapon(false);
 		}
 	}
+}
+
+bool Player::IsCrafting()
+{
+	return m_crafting;
 }
 
 // Looking
@@ -2160,6 +2574,9 @@ void Player::Update(float dt)
 	// Update combat
 	UpdateCombat(dt);
 
+	// Update block selection
+	UpdateBlockSelection(dt);
+
 	// Update movement
 	UpdateMovement(dt);
 
@@ -2172,6 +2589,9 @@ void Player::Update(float dt)
 	// Update / Create weapon lights and particle effects
 	UpdateWeaponLights(dt);
 	UpdateWeaponParticleEffects(dt);
+
+	// Update magic
+	UpdateMagic(dt);
 
 	// Update timers
 	UpdateTimers(dt);
@@ -2223,8 +2643,15 @@ void Player::UpdatePhysics(float dt)
 		m_stepUpAnimationPrevious = m_stepUpAnimationYAmount;
 	}
 
+	// Gravity multiplier
+	float gravityMultiplier = 4.0f;
+	if (m_pChunkManager->IsUnderWater(GetCenter()))
+	{
+		gravityMultiplier = 0.5f;
+	}
+
 	// Integrate velocity
-	vec3 acceleration = m_force + (m_gravityDirection * 9.81f)*4.0f;
+	vec3 acceleration = m_force + (m_gravityDirection * 9.81f)*gravityMultiplier;
 	m_velocity += acceleration * dt;
 
 	// Check collision
@@ -2257,6 +2684,8 @@ void Player::UpdatePhysics(float dt)
 					if (m_bCanJump == false)
 					{
 						m_bCanJump = true;
+
+						VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_JumpLand);
 					}
 				}
 			}
@@ -2310,6 +2739,10 @@ void Player::UpdateMovement(float dt)
 			movementDirection = normalize(movementDirection);
 
 			float movementSpeed = (4.5f * dt);
+			if (movementSpeed > 0.5f)
+			{
+				movementSpeed = 0.5f;
+			}
 			float animationSpeed = 1.0f;
 
 			// TODO : Animation speeds
@@ -2454,6 +2887,20 @@ void Player::UpdateLookingAndForwardTarget(float dt)
 	}
 }
 
+void Player::UpdateMagic(float dt)
+{
+	if (IsDead() == false)
+	{
+		// Passively add mana back
+		m_magic += 5.0f * dt;
+		if (m_magic > m_maxMagic)
+		{
+			m_magic = m_maxMagic;
+		}
+		VoxGame::GetInstance()->GetHUD()->UpdatePlayerData();
+	}
+}
+
 void Player::UpdateTimers(float dt)
 {
 	// Jump timer
@@ -2466,6 +2913,18 @@ void Player::UpdateTimers(float dt)
 	if (m_groundCheckTimer >= 0.0f)
 	{
 		m_groundCheckTimer -= dt;
+	}
+
+	// Floor particle timer
+	if (m_floorParticleTimer >= 0.0f)
+	{
+		m_floorParticleTimer -= dt;
+	}
+
+	// Footstep sounds
+	if (m_footstepSoundTimer > 0.0f)
+	{
+		m_footstepSoundTimer -= dt;
 	}
 
 	// Bow attack delay
@@ -2587,7 +3046,6 @@ void Player::UpdateWeaponLights(float dt)
 
 void Player::UpdateWeaponParticleEffects(float dt)
 {
-	// Create/update
 	for (int i = 0; i < 2; i++)
 	{
 		VoxelWeapon* pWeapon = NULL;
@@ -2611,6 +3069,7 @@ void Player::UpdateWeaponParticleEffects(float dt)
 				{
 					unsigned int particleEffectId;
 					vec3 ParticleEffectPos;
+					vec3 ParticleEffectPos_NoWorldOffset;
 					string effectName;
 					bool connectedToSegment;
 					pWeapon->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
@@ -2619,8 +3078,10 @@ void Player::UpdateWeaponParticleEffects(float dt)
 					{
 						m_pBlockParticleManager->ImportParticleEffect(effectName, vec3(ParticleEffectPos.x, ParticleEffectPos.y, ParticleEffectPos.z), &particleEffectId);
 						pWeapon->SetParticleEffectId(i, particleEffectId);
+						m_pBlockParticleManager->SetRenderNoWoldOffsetViewport(particleEffectId, true);
 					}
 
+					ParticleEffectPos_NoWorldOffset = ParticleEffectPos;
 					if (connectedToSegment == false)
 					{
 						// Rotate due to characters forward vector
@@ -2637,7 +3098,7 @@ void Player::UpdateWeaponParticleEffects(float dt)
 						ParticleEffectPos += m_position;
 					}
 
-					m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, vec3(ParticleEffectPos.x, ParticleEffectPos.y, ParticleEffectPos.z));
+					m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos, ParticleEffectPos_NoWorldOffset);
 				}
 			}
 		}
@@ -2706,6 +3167,29 @@ void Player::UpdateCombat(float dt)
 		if (pProjectile != NULL && pProjectile->GetErase() == false)
 		{
 			CheckProjectileDamageRadius(pProjectile);
+		}
+	}
+}
+
+void Player::UpdateBlockSelection(float dt)
+{
+	if (IsPickaxe())
+	{
+		Item* pInteractItem = VoxGame::GetInstance()->GetInteractItem();
+		if (pInteractItem == NULL) // Only show the mining selection block if we are not interacting with an item
+		{
+			int chunkIndex;
+			int blockX, blockY, blockZ;
+			vec3 blockPos;
+			m_blockSelection = GetSelectionBlock(&blockPos, &chunkIndex, &blockX, &blockY, &blockZ);
+			if (m_blockSelection == true)
+			{
+				m_blockSelectionPos = blockPos;
+			}
+		}
+		else
+		{
+			m_blockSelection = false;
 		}
 	}
 }
@@ -2783,6 +3267,104 @@ void Player::RenderPaperdollFace()
 	m_pRenderer->PushMatrix();
 		m_pVoxelCharacter->RenderFacePaperdoll();
 	m_pRenderer->PopMatrix();
+}
+
+void Player::RenderPortrait()
+{
+	m_pRenderer->PushMatrix();
+		m_pVoxelCharacter->RenderPortrait();
+	m_pRenderer->PopMatrix();
+}
+
+void Player::RenderPortraitFace()
+{
+	m_pRenderer->PushMatrix();
+		m_pVoxelCharacter->RenderFacePortrait();
+	m_pRenderer->PopMatrix();
+}
+
+void Player::RenderSelectionBlock()
+{
+	if(m_dead == true)
+	{
+		return;
+	}
+
+	if(IsPickaxe() == false && IsBlockPlacing() == false && IsItemPlacing() == false)
+	{
+		return;
+	}
+
+	if(m_blockSelection)
+	{
+		float l_length = Chunk::BLOCK_RENDER_SIZE * 1.1f;
+		float l_height = Chunk::BLOCK_RENDER_SIZE * 1.1f;
+		float l_width = Chunk::BLOCK_RENDER_SIZE * 1.1f;
+
+		m_pRenderer->PushMatrix();
+			m_pRenderer->TranslateWorldMatrix(m_blockSelectionPos.x, m_blockSelectionPos.y, m_blockSelectionPos.z);
+			for(int i = 0; i < 2; i ++)
+			{
+				if(i == 0)
+				{
+					m_pRenderer->SetRenderMode(RM_WIREFRAME);
+					m_pRenderer->SetCullMode(CM_NOCULL);
+					m_pRenderer->SetLineWidth(1.0f);
+				}
+				else
+				{
+					m_pRenderer->EnableTransparency(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA);
+					m_pRenderer->SetRenderMode(RM_SOLID);
+				}
+			
+				m_pRenderer->EnableImmediateMode(IM_QUADS);
+					m_pRenderer->ImmediateColourAlpha(1.0f, 0.9f, 0.25f, 0.25f);
+					m_pRenderer->ImmediateNormal(0.0f, 0.0f, -1.0f);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, -l_width);
+					m_pRenderer->ImmediateVertex(l_length, l_height, -l_width);
+
+					m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, l_width);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, l_width);
+					m_pRenderer->ImmediateVertex(l_length, l_height, l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, l_width);
+
+					m_pRenderer->ImmediateNormal(1.0f, 0.0f, 0.0f);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, l_width);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(l_length, l_height, -l_width);
+					m_pRenderer->ImmediateVertex(l_length, l_height, l_width);
+
+					m_pRenderer->ImmediateNormal(-1.0f, 0.0f, 0.0f);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, -l_width);
+
+					m_pRenderer->ImmediateNormal(0.0f, -1.0f, 0.0f);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, -l_width);
+					m_pRenderer->ImmediateVertex(l_length, -l_height, l_width);
+					m_pRenderer->ImmediateVertex(-l_length, -l_height, l_width);
+
+					m_pRenderer->ImmediateNormal(0.0f, 1.0f, 0.0f);
+					m_pRenderer->ImmediateVertex(l_length, l_height, -l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, -l_width);
+					m_pRenderer->ImmediateVertex(-l_length, l_height, l_width);
+					m_pRenderer->ImmediateVertex(l_length, l_height, l_width);
+				m_pRenderer->DisableImmediateMode();
+
+				if(i == 1)
+				{
+					m_pRenderer->DisableTransparency();
+				}
+			}		
+
+			m_pRenderer->SetCullMode(CM_BACK);
+		m_pRenderer->PopMatrix();
+	}
 }
 
 void Player::RenderDebug()

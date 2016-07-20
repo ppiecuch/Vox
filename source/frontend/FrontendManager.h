@@ -24,6 +24,7 @@
 #include "../gui/checkbox.h"
 #include "../gui/optionbox.h"
 #include "../gui/scrollbar.h"
+#include "../gui/slider.h"
 #include "../gui/pulldownmenu.h"
 #include "../gui/button.h"
 
@@ -70,6 +71,7 @@ public:
 	void SetCheckboxIcons(CheckBox* pCheckBox);
 	void SetOptionboxIcons(OptionBox* pOptionBox);
 	void SetScrollbarIcons(ScrollBar* pScrollbar);
+	void SetSliderIcons(Slider* pSlider);
 	void SetPulldownMenuIcons(PulldownMenu* pPulldownMenu);
 	void SetButtonIcons(Button* pButton, ButtonSize size);
 	void SetTabIcons(OptionBox* pTab);
@@ -102,6 +104,12 @@ public:
 	// Text effects fonts
 	unsigned int GetTextEffectFont() { return m_textEffectFontNormal; }
 	unsigned int GetTextEffectOutlineFont() { return m_textEffectFontOutline; }
+
+	// Label colours
+	Colour GetNormalFontColour() { return m_normalColour; }
+	Colour GetHoverFontColour() { return m_hoverColour; }
+	Colour GetPressedFontColour() { return m_pressedColour; }
+	Colour GetDisabledFontColour() { return m_disabledColour; }
 
 	// Checkbox
 	Icon* GetCheckboxIcon() { return m_pCheckboxIcon; };
@@ -138,6 +146,22 @@ public:
 	Icon* GetScrollbarHoverIcon() { return m_pScrollbarIconHover; };
 	Icon* GetScrollbarPressedIcon() { return m_pScrollbarIconPressed; };
 	Icon* GetScrollbarDisabledIcon() { return m_pScrollbarIconDisabled; };
+
+	// Slider
+	Icon* GetSliderIconDefault() { return m_pSliderIconDefault; };
+	Icon* GetSliderIconHover() { return m_pSliderIconHover; };
+	Icon* GetSliderIconDrag() { return m_pSliderIconDrag; };
+	Icon* GetSliderIconDefaultBlank() { return m_pSliderIconDefaultBlank; };
+	Icon* GetSliderIconHoverBlank() { return m_pSliderIconHoverBlank; };
+	Icon* GetSliderIconDragBlank() { return m_pSliderIconDragBlank; };
+	Icon* GetSliderIconIncrementButtonDefault() { return m_pSliderIncrementIcon; };
+	Icon* GetSliderIconIncrementButtonHover() { return m_pSliderIncrementIconHover; };
+	Icon* GetSliderIconIncrementButtonPressed() { return m_pSliderIncrementIconPressed; };
+	Icon* GetSliderIconIncrementButtonDisabled() { return m_pSliderIncrementIconDisabled; };
+	Icon* GetSliderIconDecrementButtonDefault() { return m_pSliderDecrementIcon; };
+	Icon* GetSliderIconDecrementButtonHover() { return m_pSliderDecrementIconHover; };
+	Icon* GetSliderIconDecrementButtonPressed() { return m_pSliderDecrementIconPressed; };
+	Icon* GetSliderIconDecrementButtonDisabled() { return m_pSliderDecrementIconDisabled; };
 
 	// Button
 	Icon* GetButtonIcon(ButtonSize size) { return m_pButtonIcon[size]; };
@@ -176,9 +200,11 @@ public:
 	void SetHoverNPC(NPC* pHoverNPC);
 	void SetSelectedNPC(NPC* pSelectedNPC);
 	void SetCharacterSubSelection(string subSelection);
+	void GotoNextCreditScreen();
+	void DisableShadowOption();
 
 	// Constants
-	float GetToolTipAppearDelay() { return m_tooltipAppearDelay; }
+	float GetToolTipAppearDelay();
 
 	// Updating
 	void Update(float dt);
@@ -249,6 +275,12 @@ private:
 	unsigned int m_textEffectFontNormal;
 	unsigned int m_textEffectFontOutline;
 
+	// Label colours
+	Colour m_normalColour;
+	Colour m_hoverColour;
+	Colour m_pressedColour;
+	Colour m_disabledColour;
+
 	// Checkbox
 	Icon* m_pCheckboxIcon;
 	Icon* m_pCheckboxIconHover;
@@ -284,6 +316,22 @@ private:
 	Icon* m_pScrollbarIconHover;
 	Icon* m_pScrollbarIconPressed;
 	Icon* m_pScrollbarIconDisabled;
+
+	// Slider
+	Icon* m_pSliderIconDefault;
+	Icon* m_pSliderIconHover;
+	Icon* m_pSliderIconDrag;
+	Icon* m_pSliderIconDefaultBlank;
+	Icon* m_pSliderIconHoverBlank;
+	Icon* m_pSliderIconDragBlank;
+	Icon* m_pSliderIncrementIcon;
+	Icon* m_pSliderIncrementIconHover;
+	Icon* m_pSliderIncrementIconPressed;
+	Icon* m_pSliderIncrementIconDisabled;
+	Icon* m_pSliderDecrementIcon;
+	Icon* m_pSliderDecrementIconHover;
+	Icon* m_pSliderDecrementIconPressed;
+	Icon* m_pSliderDecrementIconDisabled;
 
 	// Buttons
 	Icon** m_pButtonIcon;

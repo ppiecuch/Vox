@@ -22,14 +22,31 @@
 #include "../Particles/BlockParticleManager.h"
 #include "../Inventory/InventoryManager.h"
 #include "../Maths/BoundingRegion.h"
-#include "../Items/ItemsEnum.h"
+#include "ItemsEnum.h"
+#include "EquipmentEnum.h"
 
 class LightingManager;
 class ItemManager;
+class ItemSpawner;
 
+// Item helper functionality
+string GetItemTitleForType(eItem type);
+string GetItemDescriptionForType(eItem type);
+float GetItemRadiusForType(eItem type);
+string GetItemFilenameForType(eItem type);
+string GetItemTextureForType(eItem type);
 
-string GetItemTypeToString(eItem type);
-eItem GetItemTypeFromString(string typeName);
+// Equipment helper functionality
+string GetEquipmentTitleForType(eEquipment type);
+string GetEquipmentDescriptionForType(eEquipment type);
+string GetEquipmentFilenameForType(eEquipment type);
+string GetEquipmentTextureForType(eEquipment type);
+InventoryType GetInventoryTypeForEquipment(eEquipment type);
+EquipSlot GetEquipSlotForEquipment(eEquipment type);
+ItemQuality GetItemQualityForEquipment(eEquipment type);
+void GetItemSidesForEquipment(eEquipment type, bool *left, bool *right);
+void AddStatsModifiersForType(eEquipment type, InventoryItem* pItem);
+
 
 class Item
 {
@@ -60,6 +77,10 @@ public:
 	// Setup
 	void LoadItem(const char* objectFilename);
 
+	// Item spawner
+	void SetItemSpawner(ItemSpawner* pSpawner);
+	void RemoveItemSpawner(ItemSpawner* pSpawner);
+
 	// Accessors / Setters
 	void SetPosition(vec3 pos);
 	vec3 GetPosition();
@@ -71,7 +92,6 @@ public:
 	vec3 GetAngularVelocity();
 	void SetGravityDirection(vec3 dir);
 	vec3 GetGravityDirection();
-
 	float GetScale();
 	float GetRadius();
 	vec3 GetCenter();
@@ -115,6 +135,9 @@ public:
 	// Item title
 	const char* GetItemTitle();
 
+	// Should we create dying lights when we unload
+	void SetCreateDyingLights(bool dyingLights);
+
 	// Grid
 	void UpdateGridPosition();
 	Chunk* GetCachedGridChunkOrFromPosition(vec3 pos);
@@ -125,6 +148,7 @@ public:
 
 	// World collision
 	void SetWorldCollide(bool collide);
+	bool CheckCollisions(vec3 positionCheck, vec3 previousPosition, vec3 *pNormal, vec3 *pMovement);
 
 	// Bounding collision region
 	void CreateBoundingRegion(vec3 origin, BoundingRegionType boundingType, float radius, float xWidth, float yWidth, float zWidth, float scale);
@@ -146,9 +170,9 @@ public:
 	bool IsInteracting();
 	void Interact();
 	void SpawnSubItems();
-	void SeCurrentInteractCount(int currentInteract);
+	void SetCurrentInteractCount(int currentInteract);
 	int GetCurrentInteractCount();
-	void SeMaxtInteractCount(int maxInteract);
+	void SetMaxtInteractCount(int maxInteract);
 	int GetMaxInteractCount();
 
 	// Update
@@ -279,6 +303,12 @@ private:
 	// Interact counting... i.e. mining takes more than one hit to destroy.
 	int m_interactCount;
 	int m_maxInteractCount;
+
+	// Should we create dying lights when we unload the item?
+	bool m_bCreateDyingLights;
+
+	// Were we created from an item spawner
+	ItemSpawner* m_pParentItemSpawner;
 
 	// Grid position
 	int m_gridPositionX;

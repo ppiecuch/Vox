@@ -4,6 +4,8 @@
 // Author:      Steven Ball
 //
 // Purpose:
+//   An enum list of all the different front-end screens, these correspond to
+//   the front-end page classes.
 //
 // Revision History:
 //   Initial Revision - 01/11/15

@@ -118,6 +118,12 @@
     <Filter Include="source\Quests">
       <UniqueIdentifier>{aa4d79f0-ae22-45d8-b22d-abe1a71424a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="source\libnoise">
+      <UniqueIdentifier>{69395420-00af-44da-bb81-fa2a7d8757c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\AudioManager">
+      <UniqueIdentifier>{f529fbda-4588-40d3-8dc1-bfda9a8762bf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\source\glew\src\glew.c">
@@ -540,9 +546,6 @@
     <ClCompile Include="..\..\source\Items\StatAttribute.cpp">
       <Filter>source\Items</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\source\Inventory\InventoryManager.cpp">
-      <Filter>source\Inventory</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\source\GameGUI\ActionBar.cpp">
       <Filter>source\GameGUI</Filter>
     </ClCompile>
@@ -626,6 +629,30 @@
     </ClCompile>
     <ClCompile Include="..\..\source\frontend\Pages\CreateCharacter.cpp">
       <Filter>source\frontend\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\Items\ItemSpawner.cpp">
+      <Filter>source\Items</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\frontend\Pages\Credits.cpp">
+      <Filter>source\frontend\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\Items\EquipmentUtils.cpp">
+      <Filter>source\Items</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\Inventory\InventoryManager.cpp">
+      <Filter>source\Inventory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\Items\RandomLootManager.cpp">
+      <Filter>source\Items</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\libnoise\noiseutils.cpp">
+      <Filter>source\libnoise</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\AudioManager\AudioManager.cpp">
+      <Filter>source\AudioManager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\source\AudioManager\SoundEffects.cpp">
+      <Filter>source\AudioManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1606,6 +1633,30 @@
     </ClInclude>
     <ClInclude Include="..\..\source\frontend\Pages\CreateCharacter.h">
       <Filter>source\frontend\Pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\Items\ItemSpawner.h">
+      <Filter>source\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\Player\PlayerClass.h">
+      <Filter>source\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\frontend\Pages\Credits.h">
+      <Filter>source\frontend\Pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\Items\EquipmentEnum.h">
+      <Filter>source\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\Items\RandomLootManager.h">
+      <Filter>source\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\libnoise\noiseutils.h">
+      <Filter>source\libnoise</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\AudioManager\AudioManager.h">
+      <Filter>source\AudioManager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\AudioManager\SoundEffectsEnum.h">
+      <Filter>source\AudioManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

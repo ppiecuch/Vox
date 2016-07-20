@@ -78,6 +78,7 @@ SceneryObject* SceneryManager::GetSceneryObject(string name)
 
 SceneryObject* SceneryManager::AddSceneryObject(string name, string filename, vec3 pos, vec3 worldFileOffset, QubicleImportDirection importDirection, QubicleImportDirection parentImportDirection, float scale, float rotation)
 {
+	// TODO : Should add back in duplicate name check?
 	// Check if we already have a scenery object with the same name
 	//for(unsigned int i = 0; i < m_vpSceneryObjectList.size(); i++)
 	//{

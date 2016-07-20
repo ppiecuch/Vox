@@ -28,6 +28,7 @@
 #include "Enemy/EnemyManager.h"
 #include "Inventory/InventoryManager.h"
 #include "Items/ItemManager.h"
+#include "Items/RandomLootManager.h"
 #include "Quests/QuestManager.h"
 #include "Quests/QuestJournal.h"
 #include "blocks/ChunkManager.h"
@@ -39,6 +40,8 @@
 #include "Projectile/ProjectileManager.h"
 #include "TextEffects/TextEffectsManager.h"
 #include "Mods/ModsManager.h"
+#include "AudioManager/AudioManager.h"
+#include "AudioManager/SoundEffectsEnum.h"
 #include "VoxWindow.h"
 #include "VoxSettings.h"
 #include "GameGUI/ActionBar.h"
@@ -114,6 +117,9 @@ public:
 	void RotatePaperdollModel(float rot);
 	unsigned int GetDynamicPaperdollTexture();
 
+	// Portrait
+	unsigned int GetDynamicPortraitTexture();
+
 	// Events
 	void PollEvents();
 	bool ShouldClose();
@@ -121,9 +127,23 @@ public:
 	// Window functionality
 	int GetWindowCursorX();
 	int GetWindowCursorY();
+	void TurnCursorOn(bool resetCursorPosition, bool forceOn);
+	void TurnCursorOff(bool forceOff);
+	bool IsCursorOn();
 	void ResizeWindow(int width, int height);
 	void CloseWindow();
 	void UpdateJoySticks();
+
+	// Music
+	void StartFrontEndMusic();
+	void StartGameMusic();
+	void StopMusic();
+	void UpdateGameMusic(float dt);
+	void UpdateMusicVolume(float dt);
+
+	// Sounds
+	void PlaySoundEffect(eSoundEffect soundEffect, float soundEnhanceMultiplier = 1.0f);
+	void PlaySoundEffect3D(eSoundEffect soundEffect, vec3 soundPosition, float soundEnhanceMultiplier = 1.0f);
 
 	// Controls
 	void UpdateControls(float dt);
@@ -200,6 +220,8 @@ public:
 	void Render();
 	void RenderSkybox();
 	void RenderShadows();
+	void RenderWaterReflections();
+	void RenderWater();
 	void RenderDeferredLighting();
 	void RenderTransparency();
 	void RenderSSAOTexture();
@@ -210,16 +232,18 @@ public:
 	void RenderHUD();
 	void RenderCinematicLetterBox();
 	void RenderCrosshair();
+	void RenderCustomCursor();
 	void RenderPaperdollViewport();
-	void RenderFirstPersonViewport();
+	void RenderPortraitViewport();
+	void RenderFirstPersonViewport();	
 	void RenderDeferredRenderingPaperDoll();
+	void RenderDeferredRenderingPortrait();
 	void RenderDebugInformation();
 
 	// GUI Helper functions
 	bool IsGUIWindowStillDisplayed();
 	void CloseAllGUIWindows();
-	void TurnCursorOn(bool resetCursorPosition);
-	void TurnCursorOff();
+	void CloseInteractionGUI();
 
 	// GUI
 	void CreateGUI();
@@ -232,22 +256,28 @@ public:
 	void UpdateCharactersPulldown();
 	void UpdateWeaponsPulldown();
 	void UpdateAnimationsPulldown();
-	void UpdateGUIThemePulldown();
 	void AddConsoleLabel(string message);
 	void ClearConsoleLabels();
 	void UpdateConsoleLabels();
+	void ToggleFullScreenPressed();
 
 	// Accessors
 	unsigned int GetDefaultViewport();
+	Camera* GetGameCamera();
 	Player* GetPlayer();
+	ChunkManager* GetChunkManager();
+	BiomeManager* GetBiomeManager();
 	FrontendManager* GetFrontendManager();
 	BlockParticleManager* GetBlockParticleManager();
 	NPCManager* GetNPCManager();
 	ItemManager* GetItemManager();
+	InventoryManager* GetInventoryManager();
+	RandomLootManager* GetRandomLootManager();
 	ModsManager* GetModsManager();
 	CharacterGUI* GetCharacterGUI();
 	QuestGUI* GetQuestGUI();
 	HUD* GetHUD();
+	ActionBar* GetActionBar();
 	VoxSettings* GetVoxSettings();
 
 protected:
@@ -257,17 +287,11 @@ protected:
 	VoxGame &operator=(const VoxGame&) {};
 
 	// GUI callbacks
-	static void _ToggleFullScreenPressed(void *apData);
-	void ToggleFullScreenPressed();
-
 	static void _PlayAnimationPressed(void *apData);
 	void PlayAnimationPressed();
 
 	static void _AnimationPullDownChanged(void *apData);
 	void AnimationPullDownChanged();
-
-	static void _WeaponPullDownChanged(void *apData);
-	void WeaponPullDownChanged();
 
 	static void _CharacterPullDownChanged(void *apData);
 	void CharacterPullDownChanged();
@@ -295,6 +319,7 @@ private:
 
 public:
 	/* Public members */
+	static const bool STEAM_BUILD;
 
 protected:
 	/* Protected members */
@@ -330,6 +355,9 @@ private:
 
 	// Items
 	ItemManager* m_pItemManager;
+
+	// Random loot
+	RandomLootManager* m_pRandomLootManager;
 
 	// Projectile manager
 	ProjectileManager* m_pProjectileManager;
@@ -384,6 +412,9 @@ private:
 	CameraMode m_previousCameraMode;
 	bool m_shouldRestorePreviousCameraMode;
 
+	// Biome
+	Biome m_currentBiome;
+
 	// Interacting item
 	tthread::mutex m_interactItemMutex;
 	Item* m_pInteractItem;
@@ -402,6 +433,7 @@ private:
 	unsigned int m_defaultViewport;
 	unsigned int m_firstpersonViewport;
 	unsigned int m_paperdollViewport;
+	unsigned int m_portraitViewport;
 
 	// Fonts
 	unsigned int m_defaultFont;
@@ -419,17 +451,21 @@ private:
 	unsigned int m_shadowFrameBuffer;
 	unsigned int m_lightingFrameBuffer;
 	unsigned int m_transparencyFrameBuffer;
+	unsigned int m_waterReflectionFrameBuffer;
 	unsigned int m_FXAAFrameBuffer;
 	unsigned int m_firstPassFullscreenBuffer;
 	unsigned int m_secondPassFullscreenBuffer;
 	unsigned int m_paperdollBuffer;
 	unsigned int m_paperdollSSAOTextureBuffer;
+	unsigned int m_portraitBuffer;
+	unsigned int m_portraitSSAOTextureBuffer;
 
 	// Shaders
 	unsigned int m_defaultShader;
 	unsigned int m_phongShader;
 	unsigned int m_SSAOShader;
 	unsigned int m_shadowShader;
+	unsigned int m_waterShader;
 	unsigned int m_lightingShader;
 	unsigned int m_cubeMapShader;
 	unsigned int m_textureShader;
@@ -438,11 +474,23 @@ private:
 	unsigned int m_blurHorizontalShader;
 	unsigned int m_paperdollShader;
 
+	// Custom cursor textures
+	unsigned int m_customCursorNormalBuffer;
+	unsigned int m_customCursorClickedBuffer;
+	unsigned int m_customCursorRotateBuffer;
+	unsigned int m_customCursorZoomBuffer;
+
 	// Paperdoll viewport
 	int m_paperdollViewportX;
 	int m_paperdollViewportY;
 	int m_paperdollViewportWidth;
 	int m_paperdollViewportHeight;
+
+	// Portrait viewport
+	int m_portraitViewportX;
+	int m_portraitViewportY;
+	int m_portraitViewportWidth;
+	int m_portraitViewportHeight;
 
 	// FPS and deltatime
 #ifdef _WIN32
@@ -475,6 +523,10 @@ private:
 
 	// Joystick flags
 	bool m_bJoystickJump;
+
+	// Custom cursor
+	bool m_bPressedCursorDown;
+	bool m_bCustomCursorOn;
 
 	// Combat flags
 	bool m_bAttackPressed_Mouse;
@@ -531,6 +583,9 @@ private:
 	// Cinematic letterbox mode
 	float m_letterBoxRatio;
 
+	// Water
+	float m_elapsedWaterTime;
+
 	// Paperdoll rendering
 	float m_paperdollRenderRotation;
 
@@ -543,10 +598,14 @@ private:
 	ActionBar* m_pActionBar;
 	HUD* m_pHUD;
 
+	// Music and audio
+	FMOD::Channel* m_pMusicChannel;
+	FMOD::Sound* m_pMusicSound;
+	Biome m_currentBiomeMusic;
+
 	// GUI Components
 	bool m_GUICreated;
 	GUIWindow* m_pMainWindow;
-	CheckBox* m_pShadowsCheckBox;
 	CheckBox* m_pSSAOCheckBox;
 	CheckBox* m_pDynamicLightingCheckBox;
 	CheckBox* m_pWireframeCheckBox;
@@ -556,17 +615,14 @@ private:
 	CheckBox* m_pBlurCheckBox;
 	CheckBox* m_pDebugRenderCheckBox;
 	CheckBox* m_pInstanceRenderCheckBox;
-	Button* m_pFullscreenButton;
 	Button* m_pPlayAnimationButton;
 	PulldownMenu* m_pAnimationsPulldown;
-	PulldownMenu* m_pWeaponsPulldown;
 	PulldownMenu* m_pCharacterPulldown;
 	GUIWindow* m_pGameWindow;
 	OptionBox* m_pGameOptionBox;
 	OptionBox* m_pDebugOptionBox;
 	OptionBox* m_pFrontEndOptionBox;
 	OptionController* m_pGameModeOptionController;
-	PulldownMenu* m_pGUIThemePulldown;
 	OptionBox* m_pDebugCameraOptionBox;
 	OptionBox* m_pMouseRotateCameraOptionBox;
 	OptionBox* m_pAutoCameraOptionBox;
@@ -589,7 +645,6 @@ private:
 	bool m_multiSampling;
 	bool m_ssao;
 	bool m_blur;
-	bool m_shadows;
 	bool m_dynamicLighting;
 	bool m_animationUpdate;
 	bool m_fullscreen;

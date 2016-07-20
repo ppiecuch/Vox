@@ -14,7 +14,6 @@
 #include "QubicleBinary.h"
 #include "VoxelCharacter.h"
 #include "../utils/FileUtils.h"
-#include "../VoxGame.h"
 
 const float QubicleBinary::BLOCK_RENDER_SIZE = 0.5f;
 
@@ -48,6 +47,20 @@ QubicleBinary::~QubicleBinary()
 	Reset();
 }
 
+void QubicleBinary::SetNullLinkage(QubicleBinary *pBinary)
+{
+	for (int i = 0; i < (int)m_vpMatrices.size(); i++)
+	{
+		for (int j = 0; j < pBinary->GetNumMatrices(); j++)
+		{
+			if (m_vpMatrices[i] == pBinary->GetQubicleMatrix(j))
+			{
+				m_vpMatrices[i] = NULL;
+			}
+		}
+	}
+}
+
 void QubicleBinary::Unload()
 {
 	if(m_loaded)
@@ -60,6 +73,16 @@ void QubicleBinary::ClearMatrices()
 {
 	for(unsigned int i = 0; i < m_vpMatrices.size(); i++)
 	{
+		if (m_vpMatrices[i] == NULL)
+		{
+			continue;
+		}
+
+		if (m_vpMatrices[i]->m_removed == true)
+		{
+			continue;
+		}
+
 		m_pRenderer->ClearMesh(m_vpMatrices[i]->m_pMesh);
 		m_vpMatrices[i]->m_pMesh = NULL;
 
@@ -252,9 +275,6 @@ bool QubicleBinary::Import(const char* fileName, bool faceMerging)
 		CreateMesh(faceMerging);
 
 		m_loaded = true;
-
-		// TODO : Temp remove qubicle binary log outputting because of spamming and causing GUI to halt.
-		//VoxGame::GetInstance()->AddConsoleLabel("\'" + string(fileName) + "\' loaded.");
 
 		return true;
 	}
@@ -1260,7 +1280,7 @@ void QubicleBinary::Update(float dt)
 }
 
 //Rendering
-void QubicleBinary::Render(bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour)
+void QubicleBinary::Render(bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour)
 {
 	m_pRenderer->PushMatrix();
 		for(unsigned int i = 0; i < m_numMatrices; i++)
@@ -1313,7 +1333,7 @@ void QubicleBinary::Render(bool renderOutline, bool refelction, bool silhouette,
 				}
 
 				// Store the model matrix
-				if(refelction == false)
+				if(reflection == false)
 				{
 					m_pRenderer->GetModelMatrix(&m_vpMatrices[i]->m_modelMatrix);
 				}
@@ -1346,7 +1366,10 @@ void QubicleBinary::Render(bool renderOutline, bool refelction, bool silhouette,
 						m_pRenderer->MeshStaticBufferRender(m_vpMatrices[i]->m_pMesh);
 					}
 
-					m_pRenderer->DisableTransparency();
+					if (m_meshAlpha < 1.0f)
+					{
+						m_pRenderer->DisableTransparency();
+					}
 
 					// Texture manipulation (for shadow rendering)
 					{
@@ -1367,7 +1390,7 @@ void QubicleBinary::Render(bool renderOutline, bool refelction, bool silhouette,
 	m_pRenderer->PopMatrix();
 }
 
-void QubicleBinary::RenderWithAnimator(MS3DAnimator** pSkeleton, VoxelCharacter* pVoxelCharacter, bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour, bool subSelectionNamePicking)
+void QubicleBinary::RenderWithAnimator(MS3DAnimator** pSkeleton, VoxelCharacter* pVoxelCharacter, bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour, bool subSelectionNamePicking)
 {
 	if(pVoxelCharacter == NULL)
 	{
@@ -1552,7 +1575,7 @@ void QubicleBinary::RenderWithAnimator(MS3DAnimator** pSkeleton, VoxelCharacter*
 					}
 
 					// Store the model matrix
-					if(refelction == false)
+					if(reflection == false)
 					{
 						m_pRenderer->GetModelMatrix(&m_vpMatrices[i]->m_modelMatrix);
 					}
@@ -1582,7 +1605,10 @@ void QubicleBinary::RenderWithAnimator(MS3DAnimator** pSkeleton, VoxelCharacter*
 						m_pRenderer->MeshStaticBufferRender(m_vpMatrices[i]->m_pMesh);
 					}
 
-					m_pRenderer->DisableTransparency();
+					if (m_meshAlpha < 1.0f)
+					{
+						m_pRenderer->DisableTransparency();
+					}
 
 					// Texture manipulation (for shadow rendering)
 					{
@@ -1809,7 +1835,10 @@ void QubicleBinary::RenderSingleMatrix(MS3DAnimator** pSkeleton, VoxelCharacter*
 					m_pRenderer->MeshStaticBufferRender(m_vpMatrices[matrixIndex]->m_pMesh);
 				}
 
-				m_pRenderer->DisableTransparency();
+				if (m_meshAlpha < 1.0f)
+				{
+					m_pRenderer->DisableTransparency();
+				}
 
 				// Texture manipulation (for shadow rendering)
 				{
@@ -1910,8 +1939,8 @@ void QubicleBinary::RenderFace(MS3DAnimator* pSkeleton, VoxelCharacter* pVoxelCh
 				pVoxelCharacter->RenderFaceTextures(true, m_renderWireFrame, transparency);
 			m_pRenderer->PopMatrix();
 		}
-
 	}
+
 
 	// Render mouth
 	{
@@ -1986,7 +2015,7 @@ void QubicleBinary::RenderFace(MS3DAnimator* pSkeleton, VoxelCharacter* pVoxelCh
 	}
 }
 
-void QubicleBinary::RenderPaperdoll(MS3DAnimator* pSkeleton, VoxelCharacter* pVoxelCharacter)
+void QubicleBinary::RenderPaperdoll(MS3DAnimator* pSkeleton_Left, MS3DAnimator* pSkeleton_Right, VoxelCharacter* pVoxelCharacter)
 {
 	if(pVoxelCharacter == NULL)
 	{
@@ -2003,7 +2032,17 @@ void QubicleBinary::RenderPaperdoll(MS3DAnimator* pSkeleton, VoxelCharacter* pVo
 				continue;
 			}
 
-			MS3DAnimator* pSkeletonToUse = pSkeleton;			
+			MS3DAnimator* pSkeletonToUse = NULL;
+
+			if (m_vpMatrices[i]->m_boneIndex == pVoxelCharacter->GetLeftShoulderBoneIndex() ||
+				m_vpMatrices[i]->m_boneIndex == pVoxelCharacter->GetLeftHandBoneIndex())
+			{
+				pSkeletonToUse = pSkeleton_Left;
+			}
+			else
+			{
+				pSkeletonToUse = pSkeleton_Right;
+			}
 
 			m_pRenderer->PushMatrix();
 				// Breathing animation
@@ -2098,7 +2137,16 @@ void QubicleBinary::RenderPaperdoll(MS3DAnimator* pSkeleton, VoxelCharacter* pVo
 				// Translate for external matrix offset value
 				m_pRenderer->TranslateWorldMatrix(m_vpMatrices[i]->m_offsetX, m_vpMatrices[i]->m_offsetY, m_vpMatrices[i]->m_offsetZ);
 
-				m_pRenderer->SetRenderMode(RM_SOLID);
+				if (m_renderWireFrame)
+				{
+					m_pRenderer->SetLineWidth(1.0f);
+					m_pRenderer->SetRenderMode(RM_WIREFRAME);
+					m_pRenderer->SetCullMode(CM_NOCULL);
+				}
+				else
+				{
+					m_pRenderer->SetRenderMode(RM_SOLID);
+				}
 
 				// Texture manipulation (for shadow rendering)
 				{
@@ -2225,7 +2273,16 @@ void QubicleBinary::RenderPortrait(MS3DAnimator* pSkeleton, VoxelCharacter* pVox
 				// Translate for external matrix offset value
 				m_pRenderer->TranslateWorldMatrix(m_vpMatrices[matrixIndex]->m_offsetX, m_vpMatrices[matrixIndex]->m_offsetY, m_vpMatrices[matrixIndex]->m_offsetZ);
 
-				m_pRenderer->SetRenderMode(RM_SOLID);
+				if (m_renderWireFrame)
+				{
+					m_pRenderer->SetLineWidth(1.0f);
+					m_pRenderer->SetRenderMode(RM_WIREFRAME);
+					m_pRenderer->SetCullMode(CM_NOCULL);
+				}
+				else
+				{
+					m_pRenderer->SetRenderMode(RM_SOLID);
+				}
 
 				// Texture manipulation (for shadow rendering)
 				{

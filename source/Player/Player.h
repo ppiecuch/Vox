@@ -16,6 +16,7 @@
 #pragma once
 
 #include "PlayerStats.h"
+#include "PlayerClass.h"
 #include "../Renderer/Renderer.h"
 #include "../blocks/ChunkManager.h"
 #include "../models/VoxelCharacter.h"
@@ -56,6 +57,7 @@ static const int PlayerEquippedProperties_Consumable = 131072;
 static const int PlayerEquippedProperties_Bomb = 262144;
 static const int PlayerEquippedProperties_SpellHands = 524288;
 
+
 class Player
 {
 public:
@@ -82,12 +84,15 @@ public:
 	void ResetPlayer();
 
 	// Accessors / Setters
+	void SetClass(PlayerClass ePlayerClass);
+	PlayerClass GetClass();
 	void SetName(string name);
 	string GetName();
 	void SetType(string typeName);
 	string GetType();
 	void SetModelname(string modelName);
 	string GetModelName();
+	void SetPosition(vec3 pos);
 	void SetRespawnPosition(vec3 pos);
 	vec3 GetRespawnPosition();
 	vec3 GetCenter();
@@ -108,14 +113,18 @@ public:
 	void UnloadWeapon(bool left);
 
 	// Equipping items
-	void EquipItem(InventoryItem* pItem);
-	void UnequipItem(EquipSlot equipSlot);
+	void EquipItem(InventoryItem* pItem, bool supressAudio = false);
+	void UnequipItem(EquipSlot equipSlot, bool left, bool right);
 
 	// Stat modifier values
 	void RefreshStatModifierCacheValues();
 
 	// Collision
 	bool CheckCollisions(vec3 positionCheck, vec3 previousPosition, vec3 *pNormal, vec3 *pMovement, bool *pStepUpBlock);
+
+	// Selection
+	bool GetSelectionBlock(vec3 *blockPos, int* chunkIndex, int* blockX, int* blockY, int* blockZ);
+	bool GetPlacementBlock(vec3 *blockPos, int* chunkIndex, int* blockX, int* blockY, int* blockZ);
 
 	// World
 	void UpdateGridPosition();
@@ -132,7 +141,7 @@ public:
 	void SetCameraRight(vec3 right);
 
 	// Loading configuration and settings for the game
-	void LoadDefaultCharacterSettings();
+	void LoadCharacterSettings();
 	void StartGame();
 
 	// Movement
@@ -147,6 +156,7 @@ public:
 	void SetMoveToTargetPosition(vec3 pos);
 	void DisableMoveToTargetPosition();
 	void SetLookAtTargetAfterMoveToPosition(vec3 lookAt);
+	void CreateFloorParticles();
 
 	// Dead
 	bool IsDead();
@@ -181,10 +191,14 @@ public:
 	float GetAttackRadius();
 	float GetAttackRotation();
 	float GetAttackSegmentAngle();
+	void CheckEnemyDamageRadius(Enemy* pEnemy);
 	void CheckProjectileDamageRadius(Projectile* pProjectile);
 	void DoDamage(float amount, Colour textColour, vec3 knockbackDirection, float knockbackAmount, bool createParticleHit);
 	void Explode();
 	void Respawn();
+
+	// World editing
+	void DestroyBlock();
 
 	// Enemy target
 	void SetEnemyDied(Enemy* pEnemy);
@@ -194,6 +208,7 @@ public:
 	// Crafting
 	void SetCrafting(bool crafting);
 	void SetCraftingItem(bool crafting);
+	bool IsCrafting();
 
 	// Looking
 	void LookAtPoint(vec3 point);
@@ -271,11 +286,13 @@ public:
 	void UpdateMovement(float dt);
 	void UpdateWorking(float dt);
 	void UpdateLookingAndForwardTarget(float dt);
+	void UpdateMagic(float dt);
 	void UpdateTimers(float dt);
 	void UpdateWeaponLights(float dt);
 	void UpdateWeaponParticleEffects(float dt);
 	void UpdateChargingAttack(float dt);
 	void UpdateCombat(float dt);
+	void UpdateBlockSelection(float dt);
 
 	// Rendering
 	void Render();
@@ -284,6 +301,9 @@ public:
 	void RenderFace();
 	void RenderPaperdoll();
 	void RenderPaperdollFace();
+	void RenderPortrait();
+	void RenderPortraitFace();
+	void RenderSelectionBlock();
 	void RenderDebug();
 	void RenderProjectileHitboxDebug();
 
@@ -300,6 +320,9 @@ protected:
 
 	static void _AttackAnimationTimerFinished(void *apData);
 	void AttackAnimationTimerFinished();
+
+	static void _AttackAnimationTimerFinished_Alternative(void *apData);
+	void AttackAnimationTimerFinished_Alternative();
 
 private:
 	/* Private methods */
@@ -361,6 +384,9 @@ private:
 	// Player name
 	string m_name;
 
+	// Player class
+	PlayerClass m_class;
+
 	// Player type and model name
 	string m_type;
 	string m_modelName;
@@ -389,6 +415,9 @@ private:
 	// Ground flag
 	bool m_bIsOnGround;
 	float m_groundCheckTimer;
+
+	// Floor particles
+	float m_floorParticleTimer;
 
 	// Flag to control if we are allowed to jump or not, reset when landing
 	bool m_bCanJump;
@@ -477,6 +506,10 @@ private:
 	// Bitfield flag to hold the equipped properties for a player
 	unsigned int m_equippedProperties;
 
+	// Block selection
+	bool m_blockSelection;
+	vec3 m_blockSelectionPos;
+
 	// Cached values for stat modifications, cache is refreshed whenever we equip or unequip a new item
 	int m_strengthModifier;
 	int m_dexterityModifier;
@@ -487,6 +520,11 @@ private:
 
 	// Player radius
 	float m_radius;
+
+	// Footstep sounds
+	int m_footstepSoundIndex;
+	float m_footstepSoundTimer;
+	float m_footstepSoundDistance;
 
 	// Animation params
 	bool m_animationFinished[AnimationSections_NUMSECTIONS];

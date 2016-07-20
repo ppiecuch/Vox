@@ -173,8 +173,6 @@ InventoryGUI::InventoryGUI(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager
 	m_pPopupConfirmButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "Yes", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pPopupConfirmButton->SetLabelOffset(0, 3);
 	m_pPopupConfirmButton->SetPressedOffset(0, -4);
-	//m_pPopupConfirmButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pPopupConfirmButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pPopupConfirmButton->SetCallBackFunction(_PopupConfirmPressed);
 	m_pPopupConfirmButton->SetCallBackData(this);
 	m_pPopupConfirmButton->SetDepth(9.0f);
@@ -182,8 +180,6 @@ InventoryGUI::InventoryGUI(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager
 	m_pPopupCancelButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "No", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pPopupCancelButton->SetLabelOffset(0, 3);
 	m_pPopupCancelButton->SetPressedOffset(0, -4);
-	//m_pPopupCancelButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pPopupCancelButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pPopupCancelButton->SetCallBackFunction(_PopupCancelPressed);
 	m_pPopupCancelButton->SetCallBackData(this);
 	m_pPopupCancelButton->SetDepth(9.1f);
@@ -312,6 +308,13 @@ void InventoryGUI::SkinGUI()
 	iconName = "media/textures/gui/" + themeName + "/common/Tooltips/tooltip_background_epic.tga";
 	m_pTooltipBackground_Epic->SetIcon(iconName);
 
+	m_pPopupConfirmButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pPopupConfirmButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pPopupCancelButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pPopupCancelButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+
 	m_pInventoryManager->SetInventoryGUINeedsUpdate(true);
 }
 
@@ -344,8 +347,8 @@ void InventoryGUI::Load(bool loadDelay, float loadDelayTime)
 		m_pInventoryWindow->Show();
 	}
 
-	//m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	m_pressedX = 0;
 	m_pressedY = 0;
@@ -390,7 +393,7 @@ void InventoryGUI::Unload()
 
 	if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 	{
-		VoxGame::GetInstance()->TurnCursorOff();
+		VoxGame::GetInstance()->TurnCursorOff(false);
 		if (VoxGame::GetInstance()->ShouldRestorePreviousCameraMode())
 		{
 			VoxGame::GetInstance()->RestorePreviousCameraMode();
@@ -724,7 +727,7 @@ void InventoryGUI::ShowTooltip(InventorySlotItem* pInventoryItem)
 	case EquipSlot_Head: { sprintf(slotText, "Head"); break; }
 	case EquipSlot_Shoulders: { sprintf(slotText, "Shoulders"); break; }
 	case EquipSlot_Body: { sprintf(slotText, "Body"); break; }
-	case EquipSlot_Legs: { sprintf(slotText, "Lefs"); break; }
+	case EquipSlot_Legs: { sprintf(slotText, "Legs"); break; }
 	case EquipSlot_Hand: { sprintf(slotText, "Hand"); break; }
 	case EquipSlot_Feet: { sprintf(slotText, "Feet"); break; }
 	case EquipSlot_Accessory1: { sprintf(slotText, "Accessory 1"); break; }
@@ -818,8 +821,8 @@ void InventoryGUI::HideTooltip()
 
 void InventoryGUI::OpenPopup(string popupTitle, string popupText)
 {
-	//m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_40(), "%s", popupTitle.c_str());
 	m_popupTitle->SetLocation((int)((m_windowWidth*0.5f)-(textWidth*0.5f)), (int)((m_windowHeight*0.5f)+(m_popupHeight*0.5f))-m_popupTitleSpacer-m_popupBorderSpacer+100);
@@ -929,11 +932,11 @@ void InventoryGUI::EquipItem(InventorySlotItem* pInventoryItem)
 	pInventoryItem->m_slotY = -1;
 }
 
-void InventoryGUI::UnequipItem(EquipSlot equipSlot)
+void InventoryGUI::UnequipItem(EquipSlot equipSlot, bool left, bool right)
 {
 	m_pEquippedItems[equipSlot] = "";
 
-	m_pPlayer->UnequipItem(equipSlot);
+	m_pPlayer->UnequipItem(equipSlot, left, right);
 }
 
 void InventoryGUI::Update(float dt)
@@ -1036,6 +1039,28 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 
 	m_pPressedInventoryItem = NULL;
 
+	if (m_pPlayer->IsCrafting())
+	{
+		// Don't allow to do any inventory changing if we are crafting.
+
+		// Reset back to the original position
+		pInventoryItem->m_pInventoryIcon->SetLocation(m_pressedX, m_pressedY);
+		if (pInventoryItem->m_dropshadowAdded == true)
+		{
+			pInventoryItem->m_dropshadowAdded = false;
+			string themeName = VoxGame::GetInstance()->GetModsManager()->GetHUDTextureTheme();
+			string dropShadowIcon = "media/textures/gui/" + themeName + "/common/items/drop_shadow.tga";
+			pInventoryItem->m_pInventoryIcon->RemoveIcon(dropShadowIcon.c_str());
+		}
+
+		m_pInventoryWindow->RemoveComponent(m_pDestroyIcon);
+		m_pInventoryWindow->RemoveComponent(m_pDestroyLabel);
+		m_pInventoryWindow->RemoveComponent(m_pDropIcon);
+		m_pInventoryWindow->RemoveComponent(m_pDropLabel);
+
+		return;
+	}
+
 	// Figure out if we need to change to a different inventory slot
 	int x;
 	int y;
@@ -1061,7 +1086,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 						// We are unquipping an item that is in one of the equipment slots
 						m_pInventoryManager->UnequipItem(j, i, pInventoryItem->m_pInventoryItem->m_equipSlot);
 
-						UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot);
+						UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot, pInventoryItem->m_pInventoryItem->m_left, pInventoryItem->m_pInventoryItem->m_right);
 
 						// Set the new location for the released inventory icon
 						pInventoryItem->m_slotX = j;
@@ -1076,7 +1101,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 						if(pInventorySlotItem->m_pInventoryItem->m_equipSlot == pInventoryItem->m_pInventoryItem->m_equipSlot)
 						{
 							// We are swapping an equipped item for one in the inventory
-							UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot);
+							UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot, pInventoryItem->m_pInventoryItem->m_left, pInventoryItem->m_pInventoryItem->m_right);
 							m_pInventoryManager->UnequipItem(j, i, pInventoryItem->m_pInventoryItem->m_equipSlot);
 
 							// Equip the new item
@@ -1124,6 +1149,8 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 	if(switched)
 	{
 		ShowTooltip(pInventoryItem);
+
+		VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
 	}
 
 
@@ -1151,7 +1178,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 								int slotX;
 								int slotY;
 								// Unequip the left hand slot since we are dual handed, OR the already equipped left hand item needs both hands
-								UnequipItem(EquipSlot_LeftHand);
+								UnequipItem(EquipSlot_LeftHand, false, false);
 								if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_LeftHand, &slotX, &slotY) == false)
 								{
 									// We can't fit the other item in the inventory
@@ -1170,7 +1197,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 								int slotX;
 								int slotY;
 								// Unequip the right hand slot since we are dual handed, OR the already equipped right hand item needs both hands
-								UnequipItem(EquipSlot_RightHand);
+								UnequipItem(EquipSlot_RightHand, false, false);
 								if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_RightHand, &slotX, &slotY) == false)
 								{
 									// We can't fit the other item in the inventory
@@ -1182,7 +1209,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 							}
 						}
 
-						m_pPlayer->UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot);
+						m_pPlayer->UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot, pInventoryItem->m_pInventoryItem->m_left, pInventoryItem->m_pInventoryItem->m_right);
 						m_pInventoryManager->EquipInventoryItem(pInventoryItem->m_slotX, pInventoryItem->m_slotY, pInventoryItem->m_pInventoryItem->m_equipSlot);
 						EquipItem(pInventoryItem);
 
@@ -1231,7 +1258,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 									int slotX;
 									int slotY;
 									// Unequip the left hand slot since we are dual handed, OR the already equipped left hand item needs both hands
-									UnequipItem(EquipSlot_LeftHand);
+									UnequipItem(EquipSlot_LeftHand, false, false);
 									if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_LeftHand, &slotX, &slotY) == false)
 									{
 										// We can't fit the other item in the inventory
@@ -1250,7 +1277,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 									int slotX;
 									int slotY;
 									// Unequip the right hand slot since we are dual handed, OR the already equipped right hand item needs both hands
-									UnequipItem(EquipSlot_RightHand);
+									UnequipItem(EquipSlot_RightHand, false, false);
 									if(m_pInventoryManager->UnequipItemToFreeInventorySlot(EquipSlot_RightHand, &slotX, &slotY) == false)
 									{
 										// We can't fit the other item in the inventory
@@ -1262,7 +1289,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 								}
 							}
 
-							m_pPlayer->UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot);
+							m_pPlayer->UnequipItem(pInventoryItem->m_pInventoryItem->m_equipSlot, pInventoryItem->m_pInventoryItem->m_left, pInventoryItem->m_pInventoryItem->m_right);
 							m_pInventoryManager->EquipInventoryItem(pInventoryItem->m_slotX, pInventoryItem->m_slotY, pInventoryItem->m_pInventoryItem->m_equipSlot);
 							EquipItem(pInventoryItem);
 
@@ -1315,6 +1342,8 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 
 								switched = true;
 								deleted = true;
+
+								VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
 							}
 						}
 					}
@@ -1322,35 +1351,25 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 			}
 
 			// Check if we released on a actionbar slot
-			if(m_pActionBar->IsLoaded())
+			if (VoxGame::GetInstance()->GetVoxSettings()->m_renderGUI)
 			{
-				for(int i = 0; i < ActionBar::MAX_NUM_ACTION_SLOTS; i++)
+				if (m_pActionBar->IsLoaded())
 				{
-					m_pActionBar->GetActionSlotDimensions(i, &x, &y, &width, &height);
-
-					// Check if we released (mouse cursor) in the boundary of another slot
-					if(lMouse.x > x && lMouse.x < x+width && lMouse.y > y && lMouse.y < y+height)
+					for (int i = 0; i < ActionBar::MAX_NUM_ACTION_SLOTS; i++)
 					{
-						m_pActionBar->AddItemToActionBar(pInventoryItem->m_pInventoryItem, i, pInventoryItem->m_slotX, pInventoryItem->m_slotY);
-						m_pActionBar->ExportActionBar(m_pPlayer->GetName());
+						m_pActionBar->GetActionSlotDimensions(i, &x, &y, &width, &height);
+
+						// Check if we released (mouse cursor) in the boundary of another slot
+						if (lMouse.x > x && lMouse.x < x + width && lMouse.y > y && lMouse.y < y + height)
+						{
+							m_pActionBar->AddItemToActionBar(pInventoryItem->m_pInventoryItem, i, pInventoryItem->m_slotX, pInventoryItem->m_slotY);
+							m_pActionBar->ExportActionBar(m_pPlayer->GetName());
+
+							VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
+						}
 					}
 				}
 			}
-
-
-		//	// Check if we released on a crafting GUI slot
-		//	if(m_dontShowCreationAndDelete)
-		//	{
-		//		if(m_pCraftingGUI->IsLoaded())
-		//		{
-		//			m_pCraftingGUI->GetCraftingDimensions(&x, &y, &width, &height);
-
-		//			if(lMouse.x > x && lMouse.x < x+width && lMouse.y > y && lMouse.y < y+height)
-		//			{
-		//				m_pCraftingGUI->AddCraftingItemFromInventory(pInventoryItem->m_pInventoryItem);
-		//			}
-		//		}
-		//	}
 
 			if(switched == false)
 			{
@@ -1410,35 +1429,43 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 					}
 					else
 					{
-						char popupTitle[256];
-						sprintf(popupTitle, "Delete");
+						if (VoxGame::GetInstance()->GetVoxSettings()->m_confirmItemDelete)
+						{
+							char popupTitle[256];
+							sprintf(popupTitle, "Delete");
 
-						char popupText[256];
-						sprintf(popupText, "Are you sure you want to delete [C=Custom(00A2E8)]%s[C=White]?", pInventoryItem->m_pInventoryItem->m_title.c_str());
+							char popupText[256];
+							sprintf(popupText, "Are you sure you want to delete [C=Custom(00A2E8)]%s[C=White]?", pInventoryItem->m_pInventoryItem->m_title.c_str());
 
-						OpenPopup(popupTitle, popupText);
+							OpenPopup(popupTitle, popupText);
 
-						m_pInventoryItemToDelete = pInventoryItem;
+							m_pInventoryItemToDelete = pInventoryItem;
 
-						m_pCharacterGUI->HideEquipHover();
+							m_pCharacterGUI->HideEquipHover();
 
-						switched = false;
-						deleted = false;
+							switched = false;
+							deleted = false;
+						}
+						else
+						{
+							if (pInventoryItem != NULL)
+							{
+								m_pInventoryManager->RemoveInventoryItem(pInventoryItem->m_slotX, pInventoryItem->m_slotY);
+
+								m_pActionBar->RemoveInventoryItemFromActionBar(pInventoryItem->m_pInventoryItem->m_title);
+
+								m_pInventoryWindow->RemoveComponent(pInventoryItem->m_pInventoryIcon);
+
+								pInventoryItem->m_erase = true;
+								m_vpInventorySlotItems.erase(remove_if(m_vpInventorySlotItems.begin(), m_vpInventorySlotItems.end(), needs_erasing), m_vpInventorySlotItems.end());
+
+								switched = true;
+								deleted = true;
+							}
+						}
 					}
 				}
 			}
-
-	//		// Check if we released on the edit item slot
-	//		if(m_pEditItemGUI->IsLoaded())
-	//		{
-	//			m_pEditItemGUI->GetEditSlotDimensions(&x, &y, &width, &height);
-
-	//			if(lMouse.x > x && lMouse.x < x+width && lMouse.y > y && lMouse.y < y+height)
-	//			{
-	//				m_switchingToCreation = true;
-	//				m_pGameWindow->SwitchToCreation(pInventoryItem->m_pInventoryItem, pInventoryItem->m_pInventoryItem->m_equipped);
-	//			}
-	//		}
 		}
 	}
 

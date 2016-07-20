@@ -14,10 +14,13 @@
 #pragma once
 
 #include "../FrontendPage.h"
+#include "../../Inventory/InventoryManager.h"
 #include "../../gui/guiwindow.h"
 #include "../../gui/optioncontroller.h"
 #include "../../gui/scrollbar.h"
-
+#include "../../gui/draggablerenderrectangle.h"
+#include "../../gui/formattedlabel.h"
+#include "../../gui/openglgui.h"
 
 class ModMenu;
 
@@ -27,6 +30,8 @@ public:
 	ModMenu* m_pModMenu;
 	Button* m_pModButton;
 	string m_modName;
+	string m_modDescription;
+	string m_modAuthor;
 	bool m_toggled;
 	bool m_allowToggleOff;
 	bool m_allowMultipleSelection;
@@ -79,6 +84,11 @@ public:
 	void CreateMiscModButtons();
 	void RemoveMiscModButtons();
 
+	// Tooltips
+	void UpdateToolTipAppear(float dt);
+	void ShowTooltip(ModButtonData* pModButtonData);
+	void HideTooltip();
+
 	// Update
 	void Update(float dt);
 
@@ -108,6 +118,12 @@ protected:
 
 	static void _ModButtonPressed(void *apData);
 	void ModButtonPressed(ModButtonData* pModButtonData);
+
+	static void _ModButtonEntered(void *apData);
+	void ModButtonEntered(ModButtonData* pModButtonData);
+
+	static void _ModButtonExited(void *apData);
+	void ModButtonExited(ModButtonData* pModButtonData);
 
 private:
 	/* Private methods */
@@ -156,5 +172,23 @@ private:
 	std::vector<Button*> m_vpHUDModButtons;
 	std::vector<Button*> m_vpMiscModButtons;
 
-	std::vector<ModButtonData*> m_vpModButtonData;	
+	std::vector<ModButtonData*> m_vpModButtonData;
+
+	// Tooltip
+	Icon* m_pTooltipBackground_Common;
+	Icon* m_pTooltipBackground_Uncommon;
+	Icon* m_pTooltipBackground_Magical;
+	Icon* m_pTooltipBackground_Rare;
+	Icon* m_pTooltipBackground_Epic;
+	Label* m_pTooltipNameLabel;
+	FormattedLabel* m_pTooltipDescriptionLabel;
+	Label* m_pTooltipSlotLabel;
+	Label* m_pTooltipQualityLabel;
+	bool m_toolTipVisible;
+	int m_tooltipWidth;
+	int m_tooltipHeight;
+	int m_tooltipDescBorder;
+	ItemQuality m_tooltipQuality;
+	float m_tooltipAppearDelayTimer;
+	bool m_toolTipComponentsAdded;
 };

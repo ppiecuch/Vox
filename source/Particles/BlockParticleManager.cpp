@@ -320,19 +320,32 @@ int BlockParticleManager::GetNumBlockParticles()
 	return numParticles;
 }
 
-int BlockParticleManager::GetNumRenderableParticles()
+int BlockParticleManager::GetNumRenderableParticles(bool noWorldOffset)
 {
 	int numparticlesToRender = 0;
 	for(int i = 0; i < (int)m_vpBlockParticlesList.size(); i++)
 	{
+		// If we are a emitter creation particle, don't render.
 		if(m_vpBlockParticlesList[i]->m_createEmitters == true)
 		{
 			continue;
 		}
 
+		// If we are to be erased, don't render
 		if(m_vpBlockParticlesList[i]->m_erase == true)
 		{
 			continue;
+		}
+
+		// If we are rendering the special viewport particles and our parent particle effect viewport flag isn't set, don't render.
+		if (noWorldOffset)
+		{
+			if (m_vpBlockParticlesList[i]->m_pParent == NULL ||
+				m_vpBlockParticlesList[i]->m_pParent->m_pParent == NULL ||
+				m_vpBlockParticlesList[i]->m_pParent->m_pParent->m_renderNoWoldOffsetViewport == false)
+			{
+				continue;
+			}
 		}
 
 		numparticlesToRender++;
@@ -345,16 +358,7 @@ int BlockParticleManager::GetNumRenderableParticles()
 BlockParticle* BlockParticleManager::CreateBlockParticleFromEmitterParams(BlockParticleEmitter* pEmitter)
 {
 	vec3 posToSpawn = pEmitter->m_position;
-	if(pEmitter->m_particlesFollowEmitter)
-	{
-		posToSpawn = vec3(0.0f, 0.0f, 0.0f);
-	}
-	else if(pEmitter->m_pParent != NULL && pEmitter->m_pParentParticle == NULL)
-	{
-		// If our emitter's parent effect has a position offset
-		posToSpawn += pEmitter->m_pParent->m_position;
-	}
-
+	
 	vec3 posOffset;
 	if(pEmitter->m_emitterType == EmitterType_Point)
 	{
@@ -504,6 +508,20 @@ BlockParticle* BlockParticleManager::CreateBlockParticleFromEmitterParams(BlockP
 
 	posToSpawn += posOffset;
 
+
+	vec3 posToSpawn_NoWorldOffset = posToSpawn;
+	if (pEmitter->m_particlesFollowEmitter)
+	{
+		posToSpawn = vec3(0.0f, 0.0f, 0.0f);
+		posToSpawn_NoWorldOffset = vec3(0.0f, 0.0f, 0.0f);
+	}
+	else if (pEmitter->m_pParent != NULL && pEmitter->m_pParentParticle == NULL)
+	{
+		// If our emitter's parent effect has a position offset
+		posToSpawn += pEmitter->m_pParent->m_position;
+		posToSpawn_NoWorldOffset += pEmitter->m_pParent->m_position_NoWorldOffset;
+	}
+
 	// Get the create emitter
 	BlockParticleEmitter* pCreateEmitterParam = NULL;
 	BlockParticleEmitter* pCreatedEmitter = NULL;
@@ -515,7 +533,7 @@ BlockParticle* BlockParticleManager::CreateBlockParticleFromEmitterParams(BlockP
 		pCreatedEmitter->CopyParams(pCreateEmitterParam);
 	}
 
-	BlockParticle* pBlockParticle = CreateBlockParticle(posToSpawn, pEmitter->m_gravityDirection, pEmitter->m_gravityMultiplier, pEmitter->m_pointOrigin,
+	BlockParticle* pBlockParticle = CreateBlockParticle(posToSpawn, posToSpawn_NoWorldOffset, pEmitter->m_gravityDirection, pEmitter->m_gravityMultiplier, pEmitter->m_pointOrigin,
 		pEmitter->m_startScale, pEmitter->m_startScaleVariance, pEmitter->m_endScale, pEmitter->m_endScaleVariance,
 		pEmitter->m_startRed, pEmitter->m_startGreen, pEmitter->m_startBlue, pEmitter->m_startAlpha,
 		pEmitter->m_startRedVariance, pEmitter->m_startGreenVariance, pEmitter->m_startBlueVariance, pEmitter->m_startAlphaVariance,
@@ -538,7 +556,7 @@ BlockParticle* BlockParticleManager::CreateBlockParticleFromEmitterParams(BlockP
 	return pBlockParticle;
 }
 
-BlockParticle* BlockParticleManager::CreateBlockParticle(vec3 pos, vec3 gravityDir, float gravityMultiplier, vec3 pointOrigin,
+BlockParticle* BlockParticleManager::CreateBlockParticle(vec3 pos, vec3 posNoWorldOffset, vec3 gravityDir, float gravityMultiplier, vec3 pointOrigin,
 	float startScale, float startScaleVariance, float endScale, float endScaleVariance,
 	float startR, float startG, float startB, float startA,
 	float startRVariance, float startGVariance, float startBVariance, float startAVariance,
@@ -556,6 +574,7 @@ BlockParticle* BlockParticleManager::CreateBlockParticle(vec3 pos, vec3 gravityD
 	pBlockParticle->m_pChunkManager = m_pChunkManager;
 
 	pBlockParticle->m_position = pos;
+	pBlockParticle->m_position_NoWorldOffset = posNoWorldOffset;
 	pBlockParticle->m_gravityDirection = gravityDir;
 	pBlockParticle->m_gravityMultiplier = gravityMultiplier;
 
@@ -670,13 +689,27 @@ void BlockParticleManager::DestroyParticleEffect(unsigned int particleEffectId)
 	}
 }
 
-void BlockParticleManager::UpdateParticleEffectPosition(unsigned int particleEffectId, vec3 position)
+void BlockParticleManager::UpdateParticleEffectPosition(unsigned int particleEffectId, vec3 position, vec3 position_noWorldOffset)
 {
 	for(unsigned int i = 0; i < m_vpBlockParticleEffectsList.size(); i++)
 	{
 		if(m_vpBlockParticleEffectsList[i]->m_particleEffectId == particleEffectId)
 		{
 			m_vpBlockParticleEffectsList[i]->m_position = position;
+			m_vpBlockParticleEffectsList[i]->m_position_NoWorldOffset = position_noWorldOffset;
+
+			return;
+		}
+	}
+}
+
+void BlockParticleManager::SetRenderNoWoldOffsetViewport(unsigned int particleEffectId, bool renderNoWoldOffsetViewport)
+{
+	for (unsigned int i = 0; i < m_vpBlockParticleEffectsList.size(); i++)
+	{
+		if (m_vpBlockParticleEffectsList[i]->m_particleEffectId == particleEffectId)
+		{
+			m_vpBlockParticleEffectsList[i]->m_renderNoWoldOffsetViewport = renderNoWoldOffsetViewport;
 
 			return;
 		}
@@ -768,10 +801,10 @@ void BlockParticleManager::ExplodeQubicleMatrix(QubicleMatrix* pMatrix, float sc
 
 						vec3 gravity = vec3(0.0f, -1.0f, 0.0f);
 						vec3 pointOrigin = vec3(0.0f, 0.0f, 0.0f);
-						BlockParticle* pParticle = CreateBlockParticle(blockPosition, gravity, 1.5f, pointOrigin, startScale, 0.0f, endScale, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, lifeTime, 0.0f, 0.0f, 0.0f, -toOrigin+ vec3(0.0f, 2.0f, 0.0f), vec3(0.85f, 2.0f, 0.85f), vec3(0.0f, 0.0f, 0.0f), vec3(180.0f, 180.0f, 180.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, vec3(rotX, rotY, rotZ), true, false, false, false, NULL);
+						BlockParticle* pParticle = CreateBlockParticle(blockPosition, blockPosition, gravity, 1.5f, pointOrigin, startScale, 0.0f, endScale, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, r, g, b, a, 0.0f, 0.0f, 0.0f, 0.0f, lifeTime, 0.0f, 0.0f, 0.0f, -toOrigin+ vec3(0.0f, 2.0f, 0.0f), vec3(0.85f, 2.0f, 0.85f), vec3(0.0f, 0.0f, 0.0f), vec3(180.0f, 180.0f, 180.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, vec3(rotX, rotY, rotZ), true, false, false, false, NULL);
 						if(pParticle != NULL)
 						{
-							pParticle->m_allowFloorSliding = true;
+							pParticle->m_allowFloorSliding = false;
 						}
 					}
 				}
@@ -883,19 +916,19 @@ void BlockParticleManager::Update(float dt)
 }
 
 // Rendering
-void BlockParticleManager::Render()
+void BlockParticleManager::Render(bool noWorldOffset)
 {
 	if (m_instanceRendering && m_instanceShader != -1)
 	{
-		RenderInstanced();
+		RenderInstanced(noWorldOffset);
 	}
 	else
 	{
-		RenderDefault();
+		RenderDefault(noWorldOffset);
 	}
 }
 
-void BlockParticleManager::RenderInstanced()
+void BlockParticleManager::RenderInstanced(bool noWorldOffset)
 {
 	glShader* pShader = m_pRenderer->GetShader(m_instanceShader);
 
@@ -904,7 +937,7 @@ void BlockParticleManager::RenderInstanced()
 	GLint in_model_matrix = glGetAttribLocation(pShader->GetProgramObject(), "in_model_matrix");
 
 	int numBlockParticles = (int)m_vpBlockParticlesList.size();
-	int numBlockParticlesRender = GetNumRenderableParticles();
+	int numBlockParticlesRender = GetNumRenderableParticles(noWorldOffset);
 	if (numBlockParticlesRender > 0)
 	{
 		float* newMatrices = new float[16 * numBlockParticlesRender];
@@ -913,14 +946,27 @@ void BlockParticleManager::RenderInstanced()
 		int counter = 0;
 		for (int i = 0; i < numBlockParticles; i++)
 		{
+			// If we are a emitter creation particle, don't render.
 			if (m_vpBlockParticlesList[i]->m_createEmitters == true)
 			{
 				continue;
 			}
 
+			// If we are to be erased, don't render
 			if (m_vpBlockParticlesList[i]->m_erase == true)
 			{
 				continue;
+			}
+
+			// If we are rendering the special viewport particles and our parent particle effect viewport flag isn't set, don't render.
+			if (noWorldOffset)
+			{
+				if (m_vpBlockParticlesList[i]->m_pParent == NULL ||
+					m_vpBlockParticlesList[i]->m_pParent->m_pParent == NULL ||
+					m_vpBlockParticlesList[i]->m_pParent->m_pParent->m_renderNoWoldOffsetViewport == false)
+				{
+					continue;
+				}
 			}
 
 			newColors[counter + 0] = m_vpBlockParticlesList[i]->m_currentRed;
@@ -932,29 +978,69 @@ void BlockParticleManager::RenderInstanced()
 		counter = 0;
 		for (int i = 0; i < numBlockParticles; i++)
 		{
+			// If we are a emitter creation particle, don't render.
 			if (m_vpBlockParticlesList[i]->m_createEmitters == true)
 			{
 				continue;
 			}
 
+			// If we are to be erased, don't render
+			if (m_vpBlockParticlesList[i]->m_erase == true)
+			{
+				continue;
+			}
+
+			// If we are rendering the special viewport particles and our parent particle effect viewport flag isn't set, don't render.
+			if (noWorldOffset)
+			{
+				if (m_vpBlockParticlesList[i]->m_pParent == NULL ||
+					m_vpBlockParticlesList[i]->m_pParent->m_pParent == NULL ||
+					m_vpBlockParticlesList[i]->m_pParent->m_pParent->m_renderNoWoldOffsetViewport == false)
+				{
+					continue;
+				}
+			}
+
 			m_vpBlockParticlesList[i]->CalculateWorldTransformMatrix();
 
-			newMatrices[counter + 0] = m_vpBlockParticlesList[i]->m_worldMatrix.m[0];
-			newMatrices[counter + 1] = m_vpBlockParticlesList[i]->m_worldMatrix.m[1];
-			newMatrices[counter + 2] = m_vpBlockParticlesList[i]->m_worldMatrix.m[2];
-			newMatrices[counter + 3] = m_vpBlockParticlesList[i]->m_worldMatrix.m[3];
-			newMatrices[counter + 4] = m_vpBlockParticlesList[i]->m_worldMatrix.m[4];
-			newMatrices[counter + 5] = m_vpBlockParticlesList[i]->m_worldMatrix.m[5];
-			newMatrices[counter + 6] = m_vpBlockParticlesList[i]->m_worldMatrix.m[6];
-			newMatrices[counter + 7] = m_vpBlockParticlesList[i]->m_worldMatrix.m[7];
-			newMatrices[counter + 8] = m_vpBlockParticlesList[i]->m_worldMatrix.m[8];
-			newMatrices[counter + 9] = m_vpBlockParticlesList[i]->m_worldMatrix.m[9];
-			newMatrices[counter + 10] = m_vpBlockParticlesList[i]->m_worldMatrix.m[10];
-			newMatrices[counter + 11] = m_vpBlockParticlesList[i]->m_worldMatrix.m[11];
-			newMatrices[counter + 12] = m_vpBlockParticlesList[i]->m_worldMatrix.m[12];
-			newMatrices[counter + 13] = m_vpBlockParticlesList[i]->m_worldMatrix.m[13];
-			newMatrices[counter + 14] = m_vpBlockParticlesList[i]->m_worldMatrix.m[14];
-			newMatrices[counter + 15] = m_vpBlockParticlesList[i]->m_worldMatrix.m[15];
+			if (noWorldOffset)
+			{
+				newMatrices[counter + 0] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[0];
+				newMatrices[counter + 1] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[1];
+				newMatrices[counter + 2] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[2];
+				newMatrices[counter + 3] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[3];
+				newMatrices[counter + 4] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[4];
+				newMatrices[counter + 5] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[5];
+				newMatrices[counter + 6] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[6];
+				newMatrices[counter + 7] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[7];
+				newMatrices[counter + 8] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[8];
+				newMatrices[counter + 9] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[9];
+				newMatrices[counter + 10] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[10];
+				newMatrices[counter + 11] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[11];
+				newMatrices[counter + 12] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[12];
+				newMatrices[counter + 13] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[13];
+				newMatrices[counter + 14] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[14];
+				newMatrices[counter + 15] = m_vpBlockParticlesList[i]->m_worldMatrix_NoPositionOffset.m[15];
+			}
+			else
+			{
+				newMatrices[counter + 0] = m_vpBlockParticlesList[i]->m_worldMatrix.m[0];
+				newMatrices[counter + 1] = m_vpBlockParticlesList[i]->m_worldMatrix.m[1];
+				newMatrices[counter + 2] = m_vpBlockParticlesList[i]->m_worldMatrix.m[2];
+				newMatrices[counter + 3] = m_vpBlockParticlesList[i]->m_worldMatrix.m[3];
+				newMatrices[counter + 4] = m_vpBlockParticlesList[i]->m_worldMatrix.m[4];
+				newMatrices[counter + 5] = m_vpBlockParticlesList[i]->m_worldMatrix.m[5];
+				newMatrices[counter + 6] = m_vpBlockParticlesList[i]->m_worldMatrix.m[6];
+				newMatrices[counter + 7] = m_vpBlockParticlesList[i]->m_worldMatrix.m[7];
+				newMatrices[counter + 8] = m_vpBlockParticlesList[i]->m_worldMatrix.m[8];
+				newMatrices[counter + 9] = m_vpBlockParticlesList[i]->m_worldMatrix.m[9];
+				newMatrices[counter + 10] = m_vpBlockParticlesList[i]->m_worldMatrix.m[10];
+				newMatrices[counter + 11] = m_vpBlockParticlesList[i]->m_worldMatrix.m[11];
+				newMatrices[counter + 12] = m_vpBlockParticlesList[i]->m_worldMatrix.m[12];
+				newMatrices[counter + 13] = m_vpBlockParticlesList[i]->m_worldMatrix.m[13];
+				newMatrices[counter + 14] = m_vpBlockParticlesList[i]->m_worldMatrix.m[14];
+				newMatrices[counter + 15] = m_vpBlockParticlesList[i]->m_worldMatrix.m[15];
+			}
 			counter += 16;
 		}
 
@@ -984,7 +1070,7 @@ void BlockParticleManager::RenderInstanced()
 			glVertexAttribPointer(in_model_matrix + i,		// Location
 				4, GL_FLOAT, GL_FALSE,	// vec4
 				4 * 16,						// Stride
-				(void *)(16 * i));		// Start offset
+				reinterpret_cast<void *>(16 * i));		// Start offset
 
 			glEnableVertexAttribArray(in_model_matrix + i);
 			glVertexAttribDivisor(in_model_matrix + i, 1);
@@ -1041,7 +1127,7 @@ void BlockParticleManager::RenderInstanced()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void BlockParticleManager::RenderDefault()
+void BlockParticleManager::RenderDefault(bool noWorldOffset)
 {
 	// Render all block particles
 	BlockParticlesList::iterator iterator;
@@ -1069,16 +1155,23 @@ void BlockParticleManager::RenderDefault()
 			m_pRenderer->SetRenderMode(RM_SOLID);
 		}
 
-		RenderBlockParticle(lpBlockParticle);
+		RenderBlockParticle(lpBlockParticle, noWorldOffset);
 	}
 }
 
-void BlockParticleManager::RenderBlockParticle(BlockParticle* pBlockParticle)
+void BlockParticleManager::RenderBlockParticle(BlockParticle* pBlockParticle, bool noWorldOffset)
 {
 	pBlockParticle->CalculateWorldTransformMatrix();
 
 	m_pRenderer->PushMatrix();
-		m_pRenderer->MultiplyWorldMatrix(pBlockParticle->m_worldMatrix);
+		if (noWorldOffset)
+		{
+			m_pRenderer->MultiplyWorldMatrix(pBlockParticle->m_worldMatrix_NoPositionOffset);
+		}
+		else
+		{
+			m_pRenderer->MultiplyWorldMatrix(pBlockParticle->m_worldMatrix);
+		}		
 
 		Matrix4x4 worldMatrix;
 		m_pRenderer->GetModelMatrix(&worldMatrix);
@@ -1089,7 +1182,7 @@ void BlockParticleManager::RenderBlockParticle(BlockParticle* pBlockParticle)
 		m_pRenderer->PushMatrix();
 			m_pRenderer->SetPrimativeMode(PM_QUADS);
 			//m_pRenderer->EnableTransparency(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA);
-			m_pRenderer->RenderFromArray(VT_POSITION_NORMAL_COLOUR, m_blockMaterialID, NULL, 24, 24, 0, &m_vertexBuffer, NULL, NULL);
+			m_pRenderer->RenderFromArray(VT_POSITION_NORMAL_COLOUR, m_blockMaterialID, 0, 24, 24, 0, &m_vertexBuffer, NULL, NULL);
 			//m_pRenderer->DisableTransparency();
 		m_pRenderer->PopMatrix();
 

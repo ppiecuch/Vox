@@ -163,9 +163,12 @@ void VoxelCharacter::LoadVoxelCharacter(const char* characterType, const char *q
 		m_pCharacterAnimator[i]->LoadAnimations(animatorFilename);	
 	}
 
-	m_pCharacterAnimatorPaperdoll = new MS3DAnimator(m_pRenderer, m_pCharacterModel);
-	m_pCharacterAnimatorPaperdoll->LoadAnimations(animatorFilename);	
-	m_pCharacterAnimatorPaperdoll->PlayAnimation("BindPose");
+	m_pCharacterAnimatorPaperdoll_Left = new MS3DAnimator(m_pRenderer, m_pCharacterModel);
+	m_pCharacterAnimatorPaperdoll_Left->LoadAnimations(animatorFilename);
+	m_pCharacterAnimatorPaperdoll_Left->PlayAnimation("BindPose");
+	m_pCharacterAnimatorPaperdoll_Right = new MS3DAnimator(m_pRenderer, m_pCharacterModel);
+	m_pCharacterAnimatorPaperdoll_Right->LoadAnimations(animatorFilename);
+	m_pCharacterAnimatorPaperdoll_Right->PlayAnimation("BindPose");
 
 	m_pVoxelModel->SetupMatrixBones(m_pCharacterAnimator[0]);
 
@@ -214,6 +217,9 @@ void VoxelCharacter::UnloadCharacter()
 			delete m_pCharacterAnimator[i];
 			m_pCharacterAnimator[i] = NULL;
 		}
+
+		delete m_pCharacterAnimatorPaperdoll_Left;
+		delete m_pCharacterAnimatorPaperdoll_Right;
 
 		delete[] m_pFacialExpressions;
 		m_pFacialExpressions = NULL;
@@ -668,11 +674,18 @@ Matrix4x4 VoxelCharacter::GetBoneMatrix(AnimationSections section, const char* b
 	return empty;
 }
 
-Matrix4x4 VoxelCharacter::GetBoneMatrixPaperdoll(int index)
+Matrix4x4 VoxelCharacter::GetBoneMatrixPaperdoll(int index, bool left)
 {
 	if(m_loaded)
 	{
-		return m_pCharacterAnimatorPaperdoll->GetBoneMatrix(index);
+		if (left)
+		{
+			return m_pCharacterAnimatorPaperdoll_Left->GetBoneMatrix(index);
+		}
+		else
+		{
+			return m_pCharacterAnimatorPaperdoll_Right->GetBoneMatrix(index);
+		}
 	}
 
 	Matrix4x4 empty;
@@ -1518,6 +1531,19 @@ Joint* VoxelCharacter::GetJoint(const char* jointName)
 	return m_pCharacterModel->GetJoint(jointName);
 }
 
+void VoxelCharacter::PlayAnimationOnPaperDoll(const char *lAnimationName, bool left)
+{
+	if (left)
+	{
+		m_pCharacterAnimatorPaperdoll_Left->PlayAnimation(lAnimationName);
+	}
+	else
+	{
+		m_pCharacterAnimatorPaperdoll_Right->PlayAnimation(lAnimationName);
+	}
+}
+
+// Matrices
 int VoxelCharacter::GetNumModelMatrices()
 {
 	return m_pVoxelModel->GetNumMatrices();
@@ -1575,11 +1601,15 @@ void VoxelCharacter::Update(float dt, float animationSpeed[AnimationSections_NUM
 	}
 
 	// Update paperdoll animator
-	if(m_pCharacterAnimatorPaperdoll != NULL)
+	if(m_updateAnimator)
 	{
-		if(m_updateAnimator)
+		if (m_pCharacterAnimatorPaperdoll_Left != NULL)
 		{
-			m_pCharacterAnimatorPaperdoll->Update(dt);
+			m_pCharacterAnimatorPaperdoll_Left->Update(dt);
+		}
+		if (m_pCharacterAnimatorPaperdoll_Right != NULL)
+		{
+			m_pCharacterAnimatorPaperdoll_Right->Update(dt);
 		}
 	}
 
@@ -1699,13 +1729,13 @@ void VoxelCharacter::SetWeaponTrailsOriginMatrix(float dt, Matrix4x4 originMatri
 }
 
 // Rendering
-void VoxelCharacter::Render(bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour, bool subSelectionNamePicking)
+void VoxelCharacter::Render(bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour, bool subSelectionNamePicking)
 {
 	if(m_pVoxelModel != NULL)
 	{
 		m_pRenderer->PushMatrix();
 			m_pRenderer->ScaleWorldMatrix(m_characterScale, m_characterScale, m_characterScale);
-			m_pVoxelModel->RenderWithAnimator(m_pCharacterAnimator, this, renderOutline, refelction, silhouette, OutlineColour, subSelectionNamePicking);
+			m_pVoxelModel->RenderWithAnimator(m_pCharacterAnimator, this, renderOutline, reflection, silhouette, OutlineColour, subSelectionNamePicking);
 		m_pRenderer->PopMatrix();
 	}
 }
@@ -1855,29 +1885,32 @@ void VoxelCharacter::RenderFaceTextures(bool eyesTexture, bool wireframe, bool t
 		m_pRenderer->EnableMaterial(m_pVoxelModel->GetMaterial());
 
 		m_pRenderer->EnableImmediateMode(IM_QUADS);
-			m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
+			//m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
 			m_pRenderer->ImmediateTextureCoordinate(0.0f, texture_h);
 			m_pRenderer->ImmediateVertex(0.0f, 0.0f, 0.0f);
-			m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
+			//m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
 			m_pRenderer->ImmediateTextureCoordinate(texture_w, texture_h);
 			m_pRenderer->ImmediateVertex(width, 0.0f, 0.0f);
-			m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
+			//m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
 			m_pRenderer->ImmediateTextureCoordinate(texture_w, 0.0f);
 			m_pRenderer->ImmediateVertex(width, height, 0.0f);
-			m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
+			//m_pRenderer->ImmediateNormal(0.0f, 0.0f, 1.0f);
 			m_pRenderer->ImmediateTextureCoordinate(0.0f, 0.0f);
 			m_pRenderer->ImmediateVertex(0.0f, height, 0.0f);
 		m_pRenderer->DisableImmediateMode();
 		m_pRenderer->DisableTexture();
 
-		m_pRenderer->DisableTransparency();
+		if (transparency)
+		{
+			m_pRenderer->DisableTransparency();
+		}
 
 		// Restore cull mode
 		m_pRenderer->SetCullMode(cullMode);
 	m_pRenderer->PopMatrix();
 }
 
-void VoxelCharacter::RenderWeapons(bool renderOutline, bool refelction, bool silhouette, Colour OutlineColour)
+void VoxelCharacter::RenderWeapons(bool renderOutline, bool reflection, bool silhouette, Colour OutlineColour)
 {
 	if(m_pLeftWeapon != NULL)
 	{
@@ -1887,7 +1920,7 @@ void VoxelCharacter::RenderWeapons(bool renderOutline, bool refelction, bool sil
 			{
 				m_pRenderer->PushMatrix();
 					m_pRenderer->ScaleWorldMatrix(m_characterScale, m_characterScale, m_characterScale);
-					m_pLeftWeapon->Render(renderOutline, refelction, silhouette, OutlineColour);
+					m_pLeftWeapon->Render(renderOutline, reflection, silhouette, OutlineColour);
 				m_pRenderer->PopMatrix();
 			}
 		}
@@ -1900,7 +1933,7 @@ void VoxelCharacter::RenderWeapons(bool renderOutline, bool refelction, bool sil
 			{
 				m_pRenderer->PushMatrix();
 					m_pRenderer->ScaleWorldMatrix(m_characterScale, m_characterScale, m_characterScale);
-					m_pRightWeapon->Render(renderOutline, refelction, silhouette, OutlineColour);
+					m_pRightWeapon->Render(renderOutline, reflection, silhouette, OutlineColour);
 				m_pRenderer->PopMatrix();
 			}
 		}
@@ -1941,7 +1974,7 @@ void VoxelCharacter::RenderPaperdoll()
 	{
 		m_pRenderer->PushMatrix();
 			m_pRenderer->ScaleWorldMatrix(0.08f, 0.08f, 0.08f);
-			m_pVoxelModel->RenderPaperdoll(m_pCharacterAnimatorPaperdoll, this);
+			m_pVoxelModel->RenderPaperdoll(m_pCharacterAnimatorPaperdoll_Left, m_pCharacterAnimatorPaperdoll_Right, this);
 		m_pRenderer->PopMatrix();
 	}
 }
@@ -1954,8 +1987,8 @@ void VoxelCharacter::RenderPortrait()
 
 		m_pRenderer->PushMatrix();
 			m_pRenderer->ScaleWorldMatrix(0.08f, 0.08f, 0.08f);
-			m_pVoxelModel->RenderPortrait(m_pCharacterAnimatorPaperdoll, this, "Head");
-			m_pVoxelModel->RenderPortrait(m_pCharacterAnimatorPaperdoll, this, "Helm");
+			m_pVoxelModel->RenderPortrait(m_pCharacterAnimatorPaperdoll_Right, this, "Head");
+			m_pVoxelModel->RenderPortrait(m_pCharacterAnimatorPaperdoll_Right, this, "Helm");
 		m_pRenderer->PopMatrix();
 	}
 }
@@ -1971,7 +2004,7 @@ void VoxelCharacter::RenderFacePaperdoll()
 	{
 		m_pRenderer->PushMatrix();
 			m_pRenderer->ScaleWorldMatrix(0.08f, 0.08f, 0.08f);
-			m_pVoxelModel->RenderFace(m_pCharacterAnimatorPaperdoll, this, true);			
+			m_pVoxelModel->RenderFace(m_pCharacterAnimatorPaperdoll_Right, this, true);
 		m_pRenderer->PopMatrix();
 	}
 }
@@ -1988,7 +2021,7 @@ void VoxelCharacter::RenderFacePortrait()
 		m_pRenderer->PushMatrix();
 			m_pRenderer->ScaleWorldMatrix(0.08f, 0.08f, 0.08f);
 			// NOTE : DON'T scale for portrait, we want a default size
-			m_pVoxelModel->RenderFace(m_pCharacterAnimatorPaperdoll, this, true, false, true);			
+			m_pVoxelModel->RenderFace(m_pCharacterAnimatorPaperdoll_Right, this, true, false, true);
 		m_pRenderer->PopMatrix();
 	}
 }

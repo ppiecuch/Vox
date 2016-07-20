@@ -22,6 +22,7 @@
 using namespace std;
 
 #include "Item.h"
+#include "ItemSpawner.h"
 #include "../blocks/ChunkManager.h"
 #include "../blocks/BlocksEnum.h"
 #include "../Particles/BlockParticleManager.h"
@@ -29,6 +30,9 @@ using namespace std;
 #include "../Player/Player.h"
 
 class LightingManager;
+
+typedef std::vector<ItemSpawner*> ItemSpawnerList;
+
 
 class ItemSubSpawnData
 {
@@ -74,10 +78,14 @@ public:
 	void SetBlockParticleManager(BlockParticleManager* pBlockParticleManager);
 	void SetQubicleBinaryManager(QubicleBinaryManager* pQubicleBinaryManager);
 	void SetInventoryManager(InventoryManager* pInventoryManager);
+	void SetNPCManager(NPCManager* pNPCManager);
 
 	// Deletion
 	void ClearItems();
 	void ClearSubSpawnData();
+	void ClearItemSpawners();
+
+	void RemoveItemSpawnerFromItems(ItemSpawner* pSpawner);
 
 	// Item sub spawn data
 	ItemSubSpawnData* GetItemSubSpawnData(eItem sourceItem);
@@ -86,6 +94,7 @@ public:
 	// Creation
 	Item* CreateItem(vec3 position, vec3 velocity, vec3 rotation, const char* objectFilename, eItem itemType, const char* itemTitle, bool interactable, bool collectible, float scale);
 	void RemoveItem(const char* itemTitle);
+	ItemSpawner* CreateItemSpawner(vec3 position, vec3 direction);
 
 	// Get number of items
 	int GetNumItems();
@@ -137,12 +146,16 @@ private:
 	Player* m_pPlayer;
 	QubicleBinaryManager* m_pQubicleBinaryManager;
 	InventoryManager* m_pInventoryManager;
+	NPCManager* m_pNPCManager;
 
 	// Counters
 	int m_numRenderItems;
 
 	// Item list
 	ItemList m_vpItemList;
+
+	// Item spawner
+	ItemSpawnerList m_vpItemSpawnerList;
 
 	// Subspawn data, used to control which items spawn sub items
 	ItemSubSpawnDataList m_vpItemSubSpawnDataList;

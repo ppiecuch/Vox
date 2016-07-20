@@ -27,8 +27,6 @@ void VoxGame::CreateGUI()
 
 	m_pWireframeCheckBox = new CheckBox(m_pRenderer, m_defaultFont, "Wireframe");
 	m_pWireframeCheckBox->SetDimensions(10, 10, 14, 14);
-	m_pShadowsCheckBox = new CheckBox(m_pRenderer, m_defaultFont, "Shadows");
-	m_pShadowsCheckBox->SetDimensions(10, 28, 14, 14);
 	m_pMSAACheckBox = new CheckBox(m_pRenderer, m_defaultFont, "Anti-Aliasing");
 	m_pMSAACheckBox->SetDimensions(10, 46, 14, 14);
 	m_pDynamicLightingCheckBox = new CheckBox(m_pRenderer, m_defaultFont, "Lighting");
@@ -47,15 +45,8 @@ void VoxGame::CreateGUI()
 	m_pInstanceRenderCheckBox = new CheckBox(m_pRenderer, m_defaultFont, "Instance Particles");
 	m_pInstanceRenderCheckBox->SetDimensions(110, 46, 14, 14);
 
-	m_pFullscreenButton = new Button(m_pRenderer, m_defaultFont, "FullScreen");
-	m_pFullscreenButton->SetDimensions(230, 10, 85, 25);
-	m_pFullscreenButton->SetLabelColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
-	m_pFullscreenButton->SetCallBackFunction(_ToggleFullScreenPressed);
-	m_pFullscreenButton->SetCallBackData(this);
-
 	m_pPlayAnimationButton = new Button(m_pRenderer, m_defaultFont, "Play Anim");
 	m_pPlayAnimationButton->SetDimensions(230, 40, 85, 25);
-	m_pPlayAnimationButton->SetLabelColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pPlayAnimationButton->SetCallBackFunction(_PlayAnimationPressed);
 	m_pPlayAnimationButton->SetCallBackData(this);
 
@@ -67,26 +58,6 @@ void VoxGame::CreateGUI()
 	m_pAnimationsPulldown->SetMenuItemChangedCallBackFunction(_AnimationPullDownChanged);
 	m_pAnimationsPulldown->SetMenuItemChangedCallBackData(this);
 
-	m_pWeaponsPulldown = new PulldownMenu(m_pRenderer, m_defaultFont, "Weapons");
-	m_pWeaponsPulldown->SetDimensions(150, 93, 140, 14);
-	m_pWeaponsPulldown->SetMaxNumItemsDisplayed(5);
-	m_pWeaponsPulldown->SetDepth(3.0f);
-	m_pWeaponsPulldown->SetRenderHeader(true);
-	m_pWeaponsPulldown->SetMenuItemChangedCallBackFunction(_WeaponPullDownChanged);
-	m_pWeaponsPulldown->SetMenuItemChangedCallBackData(this);
-	m_pWeaponsPulldown->AddPulldownItem("None");
-	m_pWeaponsPulldown->AddPulldownItem("Sword");
-	m_pWeaponsPulldown->AddPulldownItem("Sword & Shield");
-	m_pWeaponsPulldown->AddPulldownItem("2 Handed Sword");
-	m_pWeaponsPulldown->AddPulldownItem("Hammer");
-	m_pWeaponsPulldown->AddPulldownItem("Bow");
-	m_pWeaponsPulldown->AddPulldownItem("Staff");
-	m_pWeaponsPulldown->AddPulldownItem("DruidStaff");
-	m_pWeaponsPulldown->AddPulldownItem("PriestStaff");
-	m_pWeaponsPulldown->AddPulldownItem("NecroStaff");
-	m_pWeaponsPulldown->AddPulldownItem("Torch");
-	m_pWeaponsPulldown->AddPulldownItem("Magic");
-
 	m_pCharacterPulldown = new PulldownMenu(m_pRenderer, m_defaultFont, "Character");
 	m_pCharacterPulldown->SetDimensions(150, 115, 140, 14);
 	m_pCharacterPulldown->SetMaxNumItemsDisplayed(5);
@@ -95,7 +66,6 @@ void VoxGame::CreateGUI()
 	m_pCharacterPulldown->SetMenuItemChangedCallBackFunction(_CharacterPullDownChanged);
 	m_pCharacterPulldown->SetMenuItemChangedCallBackData(this);
 
-	m_pMainWindow->AddComponent(m_pShadowsCheckBox);
 	m_pMainWindow->AddComponent(m_pSSAOCheckBox);
 	m_pMainWindow->AddComponent(m_pBlurCheckBox);
 	m_pMainWindow->AddComponent(m_pDynamicLightingCheckBox);
@@ -105,10 +75,8 @@ void VoxGame::CreateGUI()
 	m_pMainWindow->AddComponent(m_pUpdateCheckBox);
 	m_pMainWindow->AddComponent(m_pDebugRenderCheckBox);
 	m_pMainWindow->AddComponent(m_pInstanceRenderCheckBox);
-	m_pMainWindow->AddComponent(m_pFullscreenButton);
 	m_pMainWindow->AddComponent(m_pPlayAnimationButton);
 	m_pMainWindow->AddComponent(m_pAnimationsPulldown);
-	m_pMainWindow->AddComponent(m_pWeaponsPulldown);
 	m_pMainWindow->AddComponent(m_pCharacterPulldown);
 
 	m_pGameWindow = new GUIWindow(m_pRenderer, m_defaultFont, "Game");
@@ -143,14 +111,6 @@ void VoxGame::CreateGUI()
 	m_pGameModeOptionController->Add(m_pFrontEndOptionBox);
 	m_pDebugOptionBox->SetToggled(true);
 
-	m_pGUIThemePulldown = new PulldownMenu(m_pRenderer, m_defaultFont, "Theme");
-	m_pGUIThemePulldown->SetDimensions(50, 30, 80, 14);
-	m_pGUIThemePulldown->SetMaxNumItemsDisplayed(5);
-	m_pGUIThemePulldown->SetDepth(2.0f);
-	m_pGUIThemePulldown->SetRenderHeader(true);
-	m_pGUIThemePulldown->SetMenuItemChangedCallBackFunction(_GUIThemePullDownChanged);
-	m_pGUIThemePulldown->SetMenuItemChangedCallBackData(this);
-
 	m_pFaceMergingCheckbox = new CheckBox(m_pRenderer, m_defaultFont, "Face Merging");
 	m_pFaceMergingCheckbox->SetDimensions(10, 10, 14, 14);
 	m_pFaceMergingCheckbox->SetCallBackFunction(_FaceMergeCheckboxChanged);
@@ -161,7 +121,6 @@ void VoxGame::CreateGUI()
 
 	m_pStepUpdateButton = new Button(m_pRenderer, m_defaultFont, "Step");
 	m_pStepUpdateButton->SetDimensions(200, 5, 65, 25);
-	m_pStepUpdateButton->SetLabelColour(Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pStepUpdateButton->SetCallBackFunction(_StepUpdatePressed);
 	m_pStepUpdateButton->SetCallBackData(this);
 
@@ -195,7 +154,6 @@ void VoxGame::CreateGUI()
 	m_pFrontendCameraOptionBox->SetDisabled(true);
 
 	m_pGameWindow->AddComponent(m_pGameModeOptionController);
-	m_pGameWindow->AddComponent(m_pGUIThemePulldown);
 	m_pGameWindow->AddComponent(m_pCameraModeOptionController);
 	m_pGameWindow->AddComponent(m_pFaceMergingCheckbox);
 	m_pGameWindow->AddComponent(m_pStepUpdateCheckbox);
@@ -241,12 +199,9 @@ void VoxGame::CreateGUI()
 	UpdateCharactersPulldown();
 	UpdateWeaponsPulldown();
 	UpdateAnimationsPulldown();
-	UpdateGUIThemePulldown();
 
 	m_pCharacterPulldown->SetSelectedItem("Steve");
-	m_pWeaponsPulldown->SetSelectedItem("None");
 	m_pAnimationsPulldown->SetSelectedItem("BindPose");
-	m_pGUIThemePulldown->SetSelectedItem(m_pModsManager->GetHUDTextureTheme());
 
 	m_GUICreated = true;
 }
@@ -254,7 +209,6 @@ void VoxGame::CreateGUI()
 void VoxGame::SetupGUI()
 {
 	m_pDeferredCheckBox->SetToggled(m_pVoxSettings->m_deferredRendering);
-	m_pShadowsCheckBox->SetToggled(m_pVoxSettings->m_shadows);
 	m_pSSAOCheckBox->SetToggled(m_pVoxSettings->m_ssao);
 	m_pBlurCheckBox->SetToggled(m_pVoxSettings->m_blur);
 	m_pDynamicLightingCheckBox->SetToggled(m_pVoxSettings->m_dynamicLighting);
@@ -291,7 +245,7 @@ void VoxGame::SetupGUI()
 		m_pActionBar->SetSupressExport(true);
 		m_pPlayer->SetSupressStatsExport(true);
 		// Load default inventory since we are loading directly into the game
-		m_pInventoryManager->LoadDefaultInventory("", false);
+		m_pInventoryManager->LoadInventory("", PlayerClass_Debug, false);
 	}
 	else if (strcmp(m_pVoxSettings->m_gameMode.c_str(), "FrontEnd") == 0)
 	{
@@ -305,7 +259,6 @@ void VoxGame::SetupGUI()
 
 void VoxGame::SkinGUI()
 {
-	m_pFrontendManager->SetCheckboxIcons(m_pShadowsCheckBox);
 	m_pFrontendManager->SetCheckboxIcons(m_pMSAACheckBox);
 	m_pFrontendManager->SetCheckboxIcons(m_pDynamicLightingCheckBox);
 	m_pFrontendManager->SetCheckboxIcons(m_pSSAOCheckBox);
@@ -328,13 +281,10 @@ void VoxGame::SkinGUI()
 	m_pFrontendManager->SetOptionboxIcons(m_pFrontendCameraOptionBox);
 
 	m_pFrontendManager->SetPulldownMenuIcons(m_pAnimationsPulldown);
-	m_pFrontendManager->SetPulldownMenuIcons(m_pWeaponsPulldown);
 	m_pFrontendManager->SetPulldownMenuIcons(m_pCharacterPulldown);
-	m_pFrontendManager->SetPulldownMenuIcons(m_pGUIThemePulldown);
 
 	m_pFrontendManager->SetScrollbarIcons(m_pConsoleScrollbar);
 
-	m_pFrontendManager->SetButtonIcons(m_pFullscreenButton, ButtonSize_85x25);
 	m_pFrontendManager->SetButtonIcons(m_pPlayAnimationButton, ButtonSize_85x25);
 	m_pFrontendManager->SetButtonIcons(m_pStepUpdateButton, ButtonSize_65x25);
 
@@ -353,7 +303,6 @@ void VoxGame::SkinGUI()
 
 void VoxGame::UnSkinGUI()
 {
-	m_pShadowsCheckBox->SetDefaultIcons(m_pRenderer);
 	m_pMSAACheckBox->SetDefaultIcons(m_pRenderer);
 	m_pDynamicLightingCheckBox->SetDefaultIcons(m_pRenderer);
 	m_pSSAOCheckBox->SetDefaultIcons(m_pRenderer);
@@ -371,16 +320,13 @@ void VoxGame::UnSkinGUI()
 	m_pFrontEndOptionBox->SetDefaultIcons(m_pRenderer);
 
 	m_pAnimationsPulldown->SetDefaultIcons(m_pRenderer);
-	m_pWeaponsPulldown->SetDefaultIcons(m_pRenderer);
 	m_pCharacterPulldown->SetDefaultIcons(m_pRenderer);
-	m_pGUIThemePulldown->SetDefaultIcons(m_pRenderer);
 
 	m_pDebugCameraOptionBox->SetDefaultIcons(m_pRenderer);
 	m_pMouseRotateCameraOptionBox->SetDefaultIcons(m_pRenderer);
 	m_pAutoCameraOptionBox->SetDefaultIcons(m_pRenderer);
 	m_pFrontendCameraOptionBox->SetDefaultIcons(m_pRenderer);
 
-	m_pFullscreenButton->SetDefaultIcons(m_pRenderer);
 	m_pPlayAnimationButton->SetDefaultIcons(m_pRenderer);
 	m_pStepUpdateButton->SetDefaultIcons(m_pRenderer);
 
@@ -402,7 +348,6 @@ void VoxGame::UnSkinGUI()
 void VoxGame::DestroyGUI()
 {
 	delete m_pMainWindow;
-	delete m_pShadowsCheckBox;
 	delete m_pSSAOCheckBox;
 	delete m_pBlurCheckBox;
 	delete m_pDynamicLightingCheckBox;
@@ -412,17 +357,14 @@ void VoxGame::DestroyGUI()
 	delete m_pUpdateCheckBox;
 	delete m_pDebugRenderCheckBox;
 	delete m_pInstanceRenderCheckBox;
-	delete m_pFullscreenButton;
 	delete m_pPlayAnimationButton;
 	delete m_pAnimationsPulldown;
-	delete m_pWeaponsPulldown;
 	delete m_pCharacterPulldown;
 	delete m_pGameWindow;
 	delete m_pGameOptionBox;
 	delete m_pDebugOptionBox;
 	delete m_pFrontEndOptionBox;
 	delete m_pGameModeOptionController;
-	delete m_pGUIThemePulldown;
 	delete m_pFaceMergingCheckbox;
 	delete m_pStepUpdateCheckbox;
 	delete m_pStepUpdateButton;
@@ -471,8 +413,7 @@ void VoxGame::UpdateGUI(float dt)
 	}
 	if (m_shadowShader == -1)
 	{
-		m_pShadowsCheckBox->SetToggled(false);
-		m_pShadowsCheckBox->SetDisabled(true);
+		m_pFrontendManager->DisableShadowOption();
 	}
 	if (m_pBlockParticleManager->GetInstanceShaderIndex() == -1)
 	{
@@ -490,7 +431,6 @@ void VoxGame::UpdateGUI(float dt)
 		m_pBlurCheckBox->SetDisabled(true);
 	}
 
-	m_shadows = m_pShadowsCheckBox->GetToggled();
 	m_ssao = m_pSSAOCheckBox->GetToggled();
 	m_blur = m_pBlurCheckBox->GetToggled();
 	m_dynamicLighting = m_pDynamicLightingCheckBox->GetToggled();
@@ -510,6 +450,7 @@ void VoxGame::UpdateGUI(float dt)
 	m_pItemManager->SetWireFrameRender(m_modelWireframe);
 	m_pNPCManager->SetWireFrameRender(m_modelWireframe);
 	m_pEnemyManager->SetWireFrameRender(m_modelWireframe);
+	m_pInstanceManager->SetWireFrameRender(m_modelWireframe);
 
 	// Update console
 	UpdateConsoleLabels();
@@ -603,34 +544,6 @@ void VoxGame::UpdateAnimationsPulldown()
 
 	m_pMainWindow->AddComponent(m_pAnimationsPulldown);
 	m_pAnimationsPulldown->AddEventListeners();
-}
-
-void VoxGame::UpdateGUIThemePulldown()
-{
-	m_pGUIThemePulldown->RemoveAllPullDownMenuItems();
-	m_pGUIThemePulldown->ResetPullDownMenu();
-	m_pGameWindow->RemoveComponent(m_pGUIThemePulldown);
-
-	// Add 'None' theme to use standard GUI rendering
-	m_pGUIThemePulldown->AddPulldownItem("None");
-
-	char importDirectory[128];
-    sprintf(importDirectory, "media/textures/gui/*.*");
-
-	vector<string> listFiles;
-	listFiles = listFilesInDirectory(importDirectory);
-	for (unsigned int i = 0; i < listFiles.size(); i++)
-	{
-		if (strcmp(listFiles[i].c_str(), ".") == 0 || strcmp(listFiles[i].c_str(), "..") == 0)
-		{
-			continue;
-		}
-
-		m_pGUIThemePulldown->AddPulldownItem(listFiles[i].c_str());
-	}
-
-	m_pGameWindow->AddComponent(m_pGUIThemePulldown);
-	m_pGUIThemePulldown->AddEventListeners();
 }
 
 void VoxGame::AddConsoleLabel(string message)
@@ -769,13 +682,6 @@ void VoxGame::UpdateConsoleLabels()
 	}
 }
 
-// GUI callbacks
-void VoxGame::_ToggleFullScreenPressed(void *apData)
-{
-	VoxGame* lpVoxGame = (VoxGame*)apData;
-	lpVoxGame->ToggleFullScreenPressed();
-}
-
 void VoxGame::ToggleFullScreenPressed()
 {
 	m_fullscreen = !m_fullscreen;
@@ -784,6 +690,7 @@ void VoxGame::ToggleFullScreenPressed()
 	m_pBlockParticleManager->SetupGLBuffers();
 }
 
+// GUI callbacks
 void VoxGame::_PlayAnimationPressed(void *apData)
 {
 	VoxGame* lpVoxGame = (VoxGame*)apData;
@@ -810,76 +717,6 @@ void VoxGame::AnimationPullDownChanged()
 	}
 }
 
-void VoxGame::_WeaponPullDownChanged(void *apData)
-{
-	VoxGame* lpVoxGame = (VoxGame*)apData;
-	lpVoxGame->WeaponPullDownChanged();
-}
-
-void VoxGame::WeaponPullDownChanged()
-{
-	m_pPlayer->UnloadWeapon(true);
-	m_pPlayer->UnloadWeapon(false);
-	m_pPlayer->GetVoxelCharacter()->SetQubicleMatrixRender("Right_Hand", true);
-	m_pPlayer->GetVoxelCharacter()->SetQubicleMatrixRender("Left_Hand", true);
-
-	MenuItem* pMenuItem = m_pWeaponsPulldown->GetSelectedMenuItem();
-	if (pMenuItem != NULL)
-	{
-		if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "NONE") == 0)
-		{
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Sword") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/Sword/Sword.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Sword & Shield") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/Sword/Sword.weapon");
-			m_pPlayer->GetVoxelCharacter()->LoadLeftWeapon("media/gamedata/weapons/Shield/Shield.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "2 Handed Sword") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/2HandedSword/2HandedSword.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Hammer") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/Hammer/Hammer.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Bow") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadLeftWeapon("media/gamedata/weapons/Bow/Bow.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Staff") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/Staff/Staff.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "DruidStaff") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/DruidStaff/DruidStaff.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "PriestStaff") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/PriestStaff/PriestStaff.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "NecroStaff") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/NecroStaff/NecroStaff.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Torch") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/Torch/Torch.weapon");
-		}
-		else if (strcmp(pMenuItem->GetLabel().GetText().c_str(), "Magic") == 0)
-		{
-			m_pPlayer->GetVoxelCharacter()->LoadRightWeapon("media/gamedata/weapons/FireballHands/FireballHandsRight.weapon");
-			m_pPlayer->GetVoxelCharacter()->LoadLeftWeapon("media/gamedata/weapons/FireballHands/FireballHandsLeft.weapon");
-			m_pPlayer->GetVoxelCharacter()->SetQubicleMatrixRender("Right_Hand", false);
-			m_pPlayer->GetVoxelCharacter()->SetQubicleMatrixRender("Left_Hand", false);
-		}
-	}
-}
-
 void VoxGame::_CharacterPullDownChanged(void *apData)
 {
 	VoxGame* lpVoxGame = (VoxGame*)apData;
@@ -896,7 +733,6 @@ void VoxGame::CharacterPullDownChanged()
 
 		m_pPlayer->LoadCharacter(pMenuItem->GetLabel().GetText().c_str(), false);
 
-		WeaponPullDownChanged();
 		AnimationPullDownChanged();
 	}
 }
@@ -978,53 +814,27 @@ void VoxGame::CameraModeChanged()
 	{
 		SetCameraMode(CameraMode_Debug);
 
-		TurnCursorOn(true);
+		TurnCursorOn(true, false);
 	}
 	else if (m_pMouseRotateCameraOptionBox->GetToggled())
 	{
 		SetCameraMode(CameraMode_MouseRotate);
 		InitializeCameraRotation();
 
-		TurnCursorOff();
+		TurnCursorOff(false);
 	}
 	else if (m_pAutoCameraOptionBox->GetToggled())
 	{
 		SetCameraMode(CameraMode_AutoCamera);
 		InitializeCameraRotation();
 
-		TurnCursorOff();
+		TurnCursorOff(false);
 	}
 	else if (m_pFrontendCameraOptionBox->GetToggled())
 	{
 		SetCameraMode(CameraMode_Frontend);
 
-		TurnCursorOn(true);
-	}
-}
-
-void VoxGame::_GUIThemePullDownChanged(void *apData)
-{
-	VoxGame* lpVoxGame = (VoxGame*)apData;
-	lpVoxGame->GUIThemePullDownChanged();
-}
-
-void VoxGame::GUIThemePullDownChanged()
-{
-	MenuItem* pMenuItem = m_pGUIThemePulldown->GetSelectedMenuItem();
-	if (pMenuItem != NULL)
-	{
-		if (pMenuItem->GetLabel().GetText() == "None")
-		{
-			UnSkinGUI();
-		}
-		else
-		{
-			string currentThemeName = VoxGame::GetInstance()->GetModsManager()->GetHUDTextureTheme();
-			VoxGame::GetInstance()->GetModsManager()->RemoveMod(currentThemeName, false, false, false, true, false);
-			VoxGame::GetInstance()->GetModsManager()->AddMod(pMenuItem->GetLabel().GetText().c_str(), false, false, false, true, false);
-			m_pFrontendManager->LoadCommonGraphics(pMenuItem->GetLabel().GetText().c_str());
-			SkinGUI();
-		}
+		TurnCursorOn(true, false);
 	}
 }
 

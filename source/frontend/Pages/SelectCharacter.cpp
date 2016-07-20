@@ -73,8 +73,6 @@ SelectCharacter::SelectCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pPopupConfirmButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "Yes", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pPopupConfirmButton->SetLabelOffset(0, 3);
 	m_pPopupConfirmButton->SetPressedOffset(0, -4);
-	//m_pPopupConfirmButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pPopupConfirmButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pPopupConfirmButton->SetCallBackFunction(_PopupConfirmPressed);
 	m_pPopupConfirmButton->SetCallBackData(this);
 	m_pPopupConfirmButton->SetDepth(9.0f);
@@ -82,8 +80,6 @@ SelectCharacter::SelectCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pPopupCancelButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "No", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pPopupCancelButton->SetLabelOffset(0, 3);
 	m_pPopupCancelButton->SetPressedOffset(0, -4);
-	//m_pPopupCancelButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pPopupCancelButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pPopupCancelButton->SetCallBackFunction(_PopupCancelPressed);
 	m_pPopupCancelButton->SetCallBackData(this);
 	m_pPopupCancelButton->SetDepth(9.1f);
@@ -91,32 +87,24 @@ SelectCharacter::SelectCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pCreateCharacterButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_40(), m_pFrontendManager->GetFrontendFont_40_Outline(), "Create Character", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pCreateCharacterButton->SetLabelOffset(0, 5);
 	m_pCreateCharacterButton->SetPressedOffset(0, -4);
-	//m_pCreateCharacterButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pCreateCharacterButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pCreateCharacterButton->SetCallBackFunction(_CreateCharacterPressed);
 	m_pCreateCharacterButton->SetCallBackData(this);
 
 	m_pSelectCharacterButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Select", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pSelectCharacterButton->SetLabelOffset(0, 5);
 	m_pSelectCharacterButton->SetPressedOffset(0, -4);
-	//m_pSelectCharacterButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pSelectCharacterButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pSelectCharacterButton->SetCallBackFunction(_SelectCharacterPressed);
 	m_pSelectCharacterButton->SetCallBackData(this);
 
 	m_pDeleteCharacterButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_35(), m_pFrontendManager->GetFrontendFont_35_Outline(), "Delete", Colour(0.9f, 0.15f, 0.15f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pDeleteCharacterButton->SetLabelOffset(0, 3);
 	m_pDeleteCharacterButton->SetPressedOffset(0, -4);
-	//m_pDeleteCharacterButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pDeleteCharacterButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pDeleteCharacterButton->SetCallBackFunction(_DeleteCharacterPressed);
 	m_pDeleteCharacterButton->SetCallBackData(this);
 
 	m_pBackButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "Back", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pBackButton->SetLabelOffset(0, 3);
 	m_pBackButton->SetPressedOffset(0, -4);
-	//m_pBackButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pBackButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pBackButton->SetCallBackFunction(_BackPressed);
 	m_pBackButton->SetCallBackData(this);
 
@@ -187,6 +175,22 @@ void SelectCharacter::SkinGUI()
 	m_pFrontendManager->SetButtonIcons(m_pBackButton, ButtonSize_110x47);
 
 	m_pDeleteCharacterButton->SetDimensions((m_pFrontendManager->GetWindowWidth() - 225 + 92 - 82), 100, 150, 65);
+
+	m_pSelectCharacterButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSelectCharacterButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pSelectCharacterButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pCreateCharacterButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCharacterButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCreateCharacterButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pBackButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pBackButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pPopupConfirmButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pPopupConfirmButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pPopupCancelButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pPopupCancelButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void SelectCharacter::UnSkinGUI()
@@ -195,13 +199,13 @@ void SelectCharacter::UnSkinGUI()
 
 void SelectCharacter::Load()
 {
-	//m_pSelectCharacterButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pDeleteCharacterButton->SetLabelColour(Colour(0.9f, 0.15f, 0.15f, 1.0f));
-	//m_pCreateCharacterButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSelectCharacterButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pDeleteCharacterButton->SetLabelColour(Colour(0.9f, 0.15f, 0.15f, 1.0f));
+	m_pCreateCharacterButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 	
-	//m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	LoadSelectionCharacters();
 
@@ -250,8 +254,8 @@ void SelectCharacter::Unload()
 
 void SelectCharacter::LoadSelectionCharacters()
 {
-	float xPosition = -4.0f;
-	float zPosition = 1.5f;
+	float xPosition = 0.0f;
+	float zPosition = 0.0f;
 
 	char importDirectory[128];
 	sprintf(importDirectory, "saves/characters/*.*");
@@ -268,22 +272,26 @@ void SelectCharacter::LoadSelectionCharacters()
 
 		switch(characterNumCounter)
 		{
-			case 0: { xPosition = -4.0f; zPosition = 1.5f; } break;
-			case 1: { xPosition = -2.5f; zPosition = 0.5f; } break;
-			case 2: { xPosition = -1.0f; zPosition = -0.5f; } break;
-			case 3: { xPosition = 1.0f; zPosition = -0.5f; } break;
-			case 4: { xPosition = 2.5f; zPosition = 0.5f; } break;
-			case 5: { xPosition = 4.0f; zPosition = 1.5f; } break;
+			case 0: { xPosition = 21.0f; zPosition = 1.5f; } break;
+			case 1: { xPosition = 22.5f; zPosition = 0.5f; } break;
+			case 2: { xPosition = 24.0f; zPosition = -0.5f; } break;
+			case 3: { xPosition = 26.0f; zPosition = -0.5f; } break;
+			case 4: { xPosition = 27.5f; zPosition = 0.5f; } break;
+			case 5: { xPosition = 29.0f; zPosition = 1.5f; } break;
 		}
 
-		vec3 centralLookPoint = vec3(0.0f, 8.0f, 5.0f);
+		vec3 centralLookPoint = vec3(25.0f, 1.0f, 5.0f);
 
-		NPC* pCharacter1 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC(listFiles[i].c_str(), "Human", listFiles[i].c_str(), vec3(xPosition, 7.5f, zPosition), 0.08f, true, false);
+		NPC* pCharacter1 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC(listFiles[i].c_str(), "Human", listFiles[i].c_str(), vec3(xPosition, 0.5f, zPosition), 0.08f, true, false);
 		pCharacter1->SetTargetForwardToLookAtPoint(centralLookPoint);
 		pCharacter1->SetBodyTurnStopThreshold(0.01f);
 		pCharacter1->SetBodyTurnSpeedMultiplier(6.0f);
 		pCharacter1->SetPushingCollisionEnabled(false);
 		pCharacter1->SetFrontEndNPC(true);
+
+		PlayerStats playerStats(NULL);
+		playerStats.ImportStats(listFiles[i].c_str());
+		pCharacter1->SetPlayerClass(playerStats.GetClass());
 
 		char inventoryFile[128];
 		sprintf(inventoryFile, "saves/characters/%s/%s.inv", listFiles[i].c_str(), listFiles[i].c_str());
@@ -405,8 +413,8 @@ void SelectCharacter::HideTooltip()
 
 void SelectCharacter::OpenPopup(string popupTitle, string popupText)
 {
-	//m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pPopupCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_40(), "%s", popupTitle.c_str());
 	m_popupTitle->SetLocation((int)((m_windowWidth*0.5f)-(textWidth*0.5f)), (int)((m_windowHeight*0.5f)+(m_popupHeight*0.5f))-m_popupTitleSpacer-m_popupBorderSpacer+225);
@@ -437,8 +445,8 @@ void SelectCharacter::Update(float dt)
 {
 	FrontendPage::Update(dt);
 
-	m_cameraPosition = vec3(0.0f, 9.75f, 8.0f);
-	m_cameraView = vec3(0.0f, 9.0f, 0.0f);
+	m_cameraPosition = vec3(25.0f, 2.75f, 8.0f);
+	m_cameraView = vec3(25.0f, 2.0f, 0.0f);
 
 	// Character fade in text alpha
 	if(m_nameTextFadeInFadeInTimer < m_nameTextFadeInFadeInTime)
@@ -539,6 +547,7 @@ void SelectCharacter::SelectCharacterPressed()
 
 	VoxGame::GetInstance()->GetPlayer()->ResetPlayer();
 	VoxGame::GetInstance()->GetPlayer()->SetName(characterName.c_str());
+	VoxGame::GetInstance()->GetPlayer()->SetClass(m_pSelectedNPC->GetPlayerClass());
 	VoxGame::GetInstance()->GetPlayer()->LoadCharacter(characterName.c_str(), true);
 
 	m_pSelectedNPC = NULL;

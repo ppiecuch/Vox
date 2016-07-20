@@ -297,8 +297,6 @@ void QuestGUI::Load(bool loadDelay, float loadDelayTime)
 		m_pQuestLogWindow->Show();
 	}
 
-	//SetQuestData("Find Moxie", "My dearest [C=Yellow]Moxie[C=White] is lost and I can't find her. I have looked everywhere, but she is nowhere to be found...\n\nCan you lend me your assistance and help locate my dearest [C=Yellow]Moxie[C=White]? I dont know where she could be, but the last time I saw her she was playing around by [C=Custom(00A2E8)]Joseph Maclure's Barnyard[C=White].\n\nIf you can help find [C=Yellow]Moxie[C=White] for me I will reward you handsomely.");
-
 	CreateQuestButtons();
 
 	m_questTabsOpen = false;
@@ -321,7 +319,7 @@ void QuestGUI::Unload()
 
 	if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 	{
-		VoxGame::GetInstance()->TurnCursorOff();
+		VoxGame::GetInstance()->TurnCursorOff(false);
 		if (VoxGame::GetInstance()->ShouldRestorePreviousCameraMode())
 		{
 			VoxGame::GetInstance()->RestorePreviousCameraMode();
@@ -355,8 +353,10 @@ void QuestGUI::CreateQuestButtons()
 		pNewButton->SetSelectedIcon(m_pAlphaButton);
 		pNewButton->SetDisabledIcon(m_pAlphaButton);
 		pNewButton->SetPressedOffset(0, -4);
-		//pNewButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-		//pNewButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+		pNewButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+		pNewButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 		int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_20(), "%s", pQuest->GetName().c_str());
 		int textHeight = m_pRenderer->GetFreeTypeTextHeight(m_pFrontendManager->GetFrontendFont_20(), "%s", pQuest->GetName().c_str());
@@ -386,10 +386,10 @@ void QuestGUI::CreateQuestButtons()
 		pNewButton->SetSelectedIcon(m_pAlphaButton);
 		pNewButton->SetDisabledIcon(m_pAlphaButton);
 		pNewButton->SetPressedOffset(0, -4);
-		pNewButton->SetLabelColour(Colour(0.5f, 0.5f, 0.5f, 1.0f));
-		pNewButton->SetNormalLabelColour(Colour(0.5f, 0.5f, 0.5f, 1.0f));
-		//pNewButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-		//pNewButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+		pNewButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+		pNewButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+		pNewButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 
 		int textWidth = m_pRenderer->GetFreeTypeTextWidth(m_pFrontendManager->GetFrontendFont_20(), "%s", pQuest->GetName().c_str());
 		int textHeight = m_pRenderer->GetFreeTypeTextHeight(m_pFrontendManager->GetFrontendFont_20(), "%s", pQuest->GetName().c_str());

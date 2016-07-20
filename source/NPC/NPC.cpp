@@ -70,6 +70,7 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	m_hoverRender = false;
 	m_subSelectionRender = false;
 
+	// Animation params
 	for(int i = 0; i < AnimationSections_NUMSECTIONS; i++)
 	{
 		m_animationSpeed[i] = 1.0f;
@@ -92,6 +93,10 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	// Frontend NPC
 	m_frontEndNPC = false;
 
+	// Player class for frontend lineup
+	m_selectedClass = PlayerClass_Debug;
+
+	// Movement gameplay params
 	m_moveToPlayer = false;
 	m_hasReachedTargetPosition = false;
 	m_lookAtPositionWhenReachTarget = false;
@@ -139,7 +144,7 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	// Idle
 	m_bIsIdle = true;
 	m_waitBeforeStopMovingAnimationTimer = 0.0f;
-	m_hasSetIdleAnimation = false;
+	m_hasSetIdleAnimation = true;
 
 	m_movementSpeed = 3.75f;
 	m_maxMovementSpeed = 7.0f;
@@ -153,16 +158,19 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	m_jumpTimer = 0.0f;
 	m_jumpHeight = 14.5f;
 
+	// Look at point
 	m_bLookAtPoint = false;
 	m_bodyTurnSpeedMultiplier = 3.5f;
 	m_bodyTurnStopThreshold = 0.35f;
 	m_bIsLookingAtPoint = false;
 
+	// Talking
 	m_talkMode = false;
 	m_talkDelay = 0.0f;
 	m_talkTime = 0.0f;
 	m_talkTimer = 0.0f;
 
+	// Working
 	m_isWorking = false;
 	m_workingAnimationWaitTimer = 0.0f;
 	m_workingAnimationDelay = 0.45f;
@@ -170,8 +178,10 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	m_workingRepetitionCounter = 0;
 	m_createdAnvilHitParticleEffect = false;
 
+	// Push collision enabled
 	m_bPushingCollisionEnabled = true;
 
+	// Is this NPC a credits NPC, if so, behave differently
 	m_isCreditsNPC = false;
 
 	m_pTargetEnemy = NULL;
@@ -213,6 +223,11 @@ NPC::NPC(Renderer* pRenderer, ChunkManager* pChunkManager, Player* pPlayer, Ligh
 	m_pVoxelCharacter->SetRandomLookDirection(true);
 	m_pVoxelCharacter->SetWireFrameRender(false);
 
+	m_pVoxelCharacter->PlayAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "BindPose");
+
+	UnloadWeapon(true);
+	UnloadWeapon(false);
+
 	if(m_pCharacterBackup != NULL)
 	{
 		delete m_pCharacterBackup;
@@ -233,8 +248,15 @@ NPC::~NPC()
 
 	m_pVoxelCharacter->RemoveQubicleMatrix("Quiver");
 
+	if (m_pCharacterBackup != NULL)
+	{
+		m_pCharacterBackup->SetNullLinkage(m_pVoxelCharacter->GetQubicleModel());
+	}
 	delete m_pVoxelCharacter;
-	delete m_pCharacterBackup;
+	if (m_pCharacterBackup != NULL)
+	{
+		delete m_pCharacterBackup;
+	}
 }
 
 void NPC::SetLightingManager(LightingManager* pLightingManager)
@@ -365,6 +387,16 @@ bool NPC::IsFrontEndNPC()
 	return m_frontEndNPC;
 }
 
+void NPC::SetPlayerClass(PlayerClass selectedClass)
+{
+	m_selectedClass = selectedClass;
+}
+
+PlayerClass NPC::GetPlayerClass()
+{
+	return m_selectedClass;
+}
+
 // Combat type
 void NPC::SetNPCCombatType(eNPCCombatType eNPCCombatType, bool setWeaponModel)
 {
@@ -383,12 +415,12 @@ void NPC::SetNPCCombatType(eNPCCombatType eNPCCombatType, bool setWeaponModel)
 		case eNPCCombatType_None: { break; }
 		case eNPCCombatType_MeleeSword:
 			{
-				LoadWeapon(false, "media/gamedata/weapons/Sword/Sword.weapon");
+				LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_IronSword));
 				break;
 			}
 		case eNPCCombatType_Archer:
 			{
-				LoadWeapon(true, "media/gamedata/weapons/Bow/Bow.weapon");
+				LoadWeapon(true, GetEquipmentFilenameForType(eEquipment_WoodenBow));
 
 				// Add a quiver item to the enemy ranger
 				VoxelWeapon* pNewEquipment = new VoxelWeapon(m_pRenderer, m_pQubicleBinaryManager);
@@ -404,13 +436,13 @@ void NPC::SetNPCCombatType(eNPCCombatType eNPCCombatType, bool setWeaponModel)
 			}
 		case eNPCCombatType_Staff:
 			{
-				LoadWeapon(false, "media/gamedata/weapons/Staff/Staff.weapon");
+				LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_MageStaff));
 				break;
 			}
 		case eNPCCombatType_FireballHands:
 			{
-				LoadWeapon(false, "media/gamedata/weapons/FireballHands/FireballHandsRight.weapon");
-				LoadWeapon(true, "media/gamedata/weapons/FireballHands/FireballHandsLeft.weapon");
+				LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_FireballHandRight));
+				LoadWeapon(true, GetEquipmentFilenameForType(eEquipment_FireballHandLeft));
 				break;
 			}
 		}
@@ -522,133 +554,89 @@ void NPC::LoadWeapon(bool left, string weaponFile)
 
 void NPC::UnloadWeapon(bool left)
 {
-	if(left)
+	VoxelWeapon* pWeapon = NULL;
+	bool isWeaponLoaded = false;
+	if (left)  // Left side
 	{
-		if(m_pVoxelCharacter->GetLeftWeapon() != NULL)
+		pWeapon = m_pVoxelCharacter->GetLeftWeapon();
+		isWeaponLoaded = m_pVoxelCharacter->IsLeftWeaponLoaded();
+	}
+	else  // Right side
+	{
+		pWeapon = m_pVoxelCharacter->GetRightWeapon();
+		isWeaponLoaded = m_pVoxelCharacter->IsRightWeaponLoaded();
+	}
+
+	if (pWeapon != NULL)
+	{
+		if (isWeaponLoaded)
 		{
-			if(m_pVoxelCharacter->IsLeftWeaponLoaded())
+			// Lights
+			for (int i = 0; i < pWeapon->GetNumLights(); i++)
 			{
-				// Lights
-				for(int i = 0; i < m_pVoxelCharacter->GetLeftWeapon()->GetNumLights(); i++)
+				unsigned int lightId;
+				vec3 lightPos;
+				float lightRadius;
+				float lightDiffuseMultiplier;
+				Colour lightColour;
+				bool connectedToSegment;
+				pWeapon->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
+
+				if (lightId != -1)
 				{
-					unsigned int lightId;
-					vec3 lightPos;
-					float lightRadius;
-					float lightDiffuseMultiplier;
-					Colour lightColour;
-					bool connectedToSegment;
-					m_pVoxelCharacter->GetLeftWeapon()->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
+					m_pLightingManager->RemoveLight(lightId);
+					pWeapon->SetLightingId(i, -1);
 
-					if(lightId != -1)
+					if (connectedToSegment == false)
 					{
-						m_pLightingManager->RemoveLight(lightId);
-						m_pVoxelCharacter->GetLeftWeapon()->SetLightingId(i, -1);
-
-						if(connectedToSegment == false)
+						// Rotate due to characters forward vector
+						float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
+						if (m_forward.x < 0.0f)
 						{
-							// Rotate due to characters forward vector
-							float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-							if(m_forward.x < 0.0f)
-							{
-								rotationAngle = -rotationAngle;
-							}
-							Matrix4x4 rotationMatrix;
-							rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-							lightPos = rotationMatrix * lightPos;
-
-							// Translate to position
-							lightPos += m_position;
+							rotationAngle = -rotationAngle;
 						}
+						Matrix4x4 rotationMatrix;
+						rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
+						lightPos = rotationMatrix * lightPos;
 
+						// Translate to position
+						lightPos += m_position;
+					}
+
+					if (m_frontEndNPC == false)
+					{
 						float scale = m_pVoxelCharacter->GetCharacterScale();
 						unsigned int lId;
-						m_pLightingManager->AddDyingLight(lightPos, lightRadius * scale, lightDiffuseMultiplier, lightColour, 2.0f, &lId);
-					}
-				}
-
-				// Particle Effects
-				for(int i = 0; i < m_pVoxelCharacter->GetLeftWeapon()->GetNumParticleEffects(); i++)
-				{
-					unsigned int particleEffectId;
-					vec3 ParticleEffectPos;
-					string effectName;
-					bool connectedToSegment;
-					m_pVoxelCharacter->GetLeftWeapon()->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
-
-					if(particleEffectId != -1)
-					{
-						m_pBlockParticleManager->DestroyParticleEffect(particleEffectId);
-						m_pVoxelCharacter->GetLeftWeapon()->SetParticleEffectId(i, -1);
+						m_pLightingManager->AddDyingLight(vec3(lightPos.x, lightPos.y, lightPos.z), lightRadius * scale, lightDiffuseMultiplier, lightColour, 2.0f, &lId);
 					}
 				}
 			}
 
-			m_pVoxelCharacter->GetLeftWeapon()->UnloadWeapon();
+			// Particle Effects
+			for (int i = 0; i < pWeapon->GetNumParticleEffects(); i++)
+			{
+				unsigned int particleEffectId;
+				vec3 ParticleEffectPos;
+				string effectName;
+				bool connectedToSegment;
+				pWeapon->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
+
+				if (particleEffectId != -1)
+				{
+					m_pBlockParticleManager->DestroyParticleEffect(particleEffectId);
+					pWeapon->SetParticleEffectId(i, -1);
+				}
+			}
+		}
+
+		pWeapon->UnloadWeapon();
+
+		if (left)  // Left side
+		{
 			m_pVoxelCharacter->UnloadLeftWeapon();
 		}
-	}
-	else
-	{
-		if(m_pVoxelCharacter->GetRightWeapon() != NULL)
+		else  // Right side
 		{
-			if(m_pVoxelCharacter->IsRightWeaponLoaded())
-			{
-				// Lights
-				for(int i = 0; i < m_pVoxelCharacter->GetRightWeapon()->GetNumLights(); i++)
-				{
-					unsigned int lightId;
-					vec3 lightPos;
-					float lightRadius;
-					float lightDiffuseMultiplier;
-					Colour lightColour;
-					bool connectedToSegment;
-					m_pVoxelCharacter->GetRightWeapon()->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
-
-					if(lightId != -1)
-					{
-						m_pLightingManager->RemoveLight(lightId);
-						m_pVoxelCharacter->GetRightWeapon()->SetLightingId(i, -1);
-
-						if(connectedToSegment == false)
-						{
-							// Rotate due to characters forward vector
-							float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-							if(m_forward.x < 0.0f)
-							{
-								rotationAngle = -rotationAngle;
-							}
-							Matrix4x4 rotationMatrix;
-							rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-							lightPos = rotationMatrix * lightPos;
-
-							// Translate to position
-							lightPos += m_position;
-						}
-
-						float scale = m_pVoxelCharacter->GetCharacterScale();
-						unsigned int lId;
-						m_pLightingManager->AddDyingLight(lightPos, lightRadius * scale, lightDiffuseMultiplier, lightColour, 2.0f, &lId);
-					}
-				}
-
-				// Particle Effects
-				for(int i = 0; i < m_pVoxelCharacter->GetRightWeapon()->GetNumParticleEffects(); i++)
-				{
-					unsigned int particleEffectId;
-					vec3 ParticleEffectPos;
-					string effectName;
-					bool connectedToSegment;
-					m_pVoxelCharacter->GetRightWeapon()->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
-
-					if(particleEffectId != -1)
-					{
-						m_pBlockParticleManager->DestroyParticleEffect(particleEffectId);
-						m_pVoxelCharacter->GetRightWeapon()->SetParticleEffectId(i, -1);
-					}
-				}
-			}
-
-			m_pVoxelCharacter->GetRightWeapon()->UnloadWeapon();
 			m_pVoxelCharacter->UnloadRightWeapon();
 		}
 	}
@@ -995,7 +983,7 @@ void NPC::EquipItem(EquipSlot equipSlot, const char* itemFilename, bool left, bo
 	}
 }
 
-void NPC::UnequipItem(EquipSlot equipSlot)
+void NPC::UnequipItem(EquipSlot equipSlot, bool left, bool right)
 {
 	switch(equipSlot)
 	{
@@ -1046,13 +1034,19 @@ void NPC::UnequipItem(EquipSlot equipSlot)
 		break;
 	case EquipSlot_Hand:
 		{
-			QubicleMatrix* pRightHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Hand");
-			pRightHandMatrix->m_boneIndex = m_pVoxelCharacter->GetRightHandBoneIndex();
-			m_pVoxelCharacter->AddQubicleMatrix(pRightHandMatrix, false);
+			if (right)
+			{
+				QubicleMatrix* pRightHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Hand");
+				pRightHandMatrix->m_boneIndex = m_pVoxelCharacter->GetRightHandBoneIndex();
+				m_pVoxelCharacter->AddQubicleMatrix(pRightHandMatrix, false);
+			}
 
-			QubicleMatrix* pLeftHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Hand");
-			pLeftHandMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftHandBoneIndex();
-			m_pVoxelCharacter->AddQubicleMatrix(pLeftHandMatrix, false);
+			if (left)
+			{
+				QubicleMatrix* pLeftHandMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Hand");
+				pLeftHandMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftHandBoneIndex();
+				m_pVoxelCharacter->AddQubicleMatrix(pLeftHandMatrix, false);
+			}
 
 			char characterFilename[128];
 			sprintf(characterFilename, "media/gamedata/characters/%s/%s.character", m_type.c_str(), m_modelName.c_str());
@@ -1062,13 +1056,19 @@ void NPC::UnequipItem(EquipSlot equipSlot)
 		break;
 	case EquipSlot_Feet:
 		{
-			QubicleMatrix* pRightFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Foot");
-			pRightFootMatrix->m_boneIndex = m_pVoxelCharacter->GetRightFootBoneIndex();
-			m_pVoxelCharacter->AddQubicleMatrix(pRightFootMatrix, false);
+			if (right)
+			{
+				QubicleMatrix* pRightFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Right_Foot");
+				pRightFootMatrix->m_boneIndex = m_pVoxelCharacter->GetRightFootBoneIndex();
+				m_pVoxelCharacter->AddQubicleMatrix(pRightFootMatrix, false);
+			}
 
-			QubicleMatrix* pLeftFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Foot");
-			pLeftFootMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftFootBoneIndex();
-			m_pVoxelCharacter->AddQubicleMatrix(pLeftFootMatrix, false);
+			if (left)
+			{
+				QubicleMatrix* pLeftFootMatrix = m_pCharacterBackup->GetQubicleMatrix("Left_Foot");
+				pLeftFootMatrix->m_boneIndex = m_pVoxelCharacter->GetLeftFootBoneIndex();
+				m_pVoxelCharacter->AddQubicleMatrix(pLeftFootMatrix, false);
+			}
 
 			char characterFilename[128];
 			sprintf(characterFilename, "media/gamedata/characters/%s/%s.character", m_type.c_str(), m_modelName.c_str());
@@ -1411,6 +1411,11 @@ bool NPC::IsInsideWaypoint(int waypointIndex)
 void NPC::SetMoveBackToPosition(vec3 pos)
 {
 	m_moveBackToPosition = pos;
+}
+
+void NPC::SetForwards(vec3 dir)
+{
+	m_forward = normalize(dir);
 }
 
 void NPC::SetTargetForwards(vec3 dir)
@@ -1784,7 +1789,7 @@ void NPC::Attack()
 		{
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "StaffAttack", 0.01f);
 
-			m_attackDelayTimer = 1.35f;
+			m_attackDelayTime = 1.35f + GetRandomNumber(-100, 50, 2) * 0.005f;
 
 			m_attackEnabledDelayTimer = 0.15f;
 			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledDelayTimer, m_attackEnabledDelayTimer, 0.0f, m_attackEnabledDelayTimer, 0.0f, NULL, _AttackEnabledDelayTimerFinished, this);
@@ -1814,7 +1819,7 @@ void NPC::Attack()
 			m_animationFinished[AnimationSections_Right_Arm_Hand] = true;
 			SetAnimationSpeed(1.5f, true, AnimationSections_FullBody);
 
-			m_attackDelayTimer = 0.75f;
+			m_attackDelayTime = 0.75f + GetRandomNumber(-50, 50, 2) * 0.005f;
 			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.3f, 0.3f, 0.0f, NULL, _AttackEnabledDelayTimerFinished, this);
 
 			m_bCanAttack = false;
@@ -1898,6 +1903,8 @@ void NPC::SetEnemyDied(Enemy* pEnemy)
 	if(m_pTargetEnemy == pEnemy)
 	{
 		SetTargetEnemy(NULL);
+
+		SetRandomLookMode();
 	}
 }
 
@@ -2359,94 +2366,64 @@ vec2 NPC::GetScreenPosition()
 
 void NPC::UpdateWeaponLights(float dt)
 {
-	// Create/update
-	if(m_pVoxelCharacter->GetRightWeapon() != NULL)
+	for (int i = 0; i < 2; i++)
 	{
-		if(m_pVoxelCharacter->IsRightWeaponLoaded())
+		VoxelWeapon* pWeapon = NULL;
+		bool isWeaponLoaded = false;
+		if (i == 0)  // Right side
 		{
-			for(int i = 0; i < m_pVoxelCharacter->GetRightWeapon()->GetNumLights(); i++)
-			{
-				unsigned int lightId;
-				vec3 lightPos;
-				float lightRadius;
-				float lightDiffuseMultiplier;
-				Colour lightColour;
-				bool connectedToSegment;
-				m_pVoxelCharacter->GetRightWeapon()->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
-
-				if(lightId == -1)
-				{
-					m_pLightingManager->AddLight(vec3(0.0f, 0.0f, 0.0f), 0.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f, 1.0f), &lightId);
-					m_pVoxelCharacter->GetRightWeapon()->SetLightingId(i, lightId);
-				}
-
-				if(connectedToSegment == false)
-				{
-					// Rotate due to characters forward vector
-					float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-					if(m_forward.x < 0.0f)
-					{
-						rotationAngle = -rotationAngle;
-					}
-					Matrix4x4 rotationMatrix;
-					rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-					lightPos = rotationMatrix * lightPos;
-
-					// Translate to position
-					lightPos += m_position;
-				}
-
-				float scale = m_pVoxelCharacter->GetCharacterScale();
-
-				m_pLightingManager->UpdateLightPosition(lightId, lightPos);
-				m_pLightingManager->UpdateLightRadius(lightId, lightRadius * scale);
-				m_pLightingManager->UpdateLightDiffuseMultiplier(lightId, lightDiffuseMultiplier);
-				m_pLightingManager->UpdateLightColour(lightId, lightColour);
-			}
+			pWeapon = m_pVoxelCharacter->GetRightWeapon();
+			isWeaponLoaded = m_pVoxelCharacter->IsRightWeaponLoaded();
 		}
-	}
-	if(m_pVoxelCharacter->GetLeftWeapon() != NULL)
-	{
-		if(m_pVoxelCharacter->IsLeftWeaponLoaded())
+		else  // Left side
 		{
-			for(int i = 0; i < m_pVoxelCharacter->GetLeftWeapon()->GetNumLights(); i++)
+			pWeapon = m_pVoxelCharacter->GetLeftWeapon();
+			isWeaponLoaded = m_pVoxelCharacter->IsLeftWeaponLoaded();
+		}
+
+		if (pWeapon != NULL)
+		{
+			if (isWeaponLoaded)
 			{
-				unsigned int lightId;
-				vec3 lightPos;
-				float lightRadius;
-				float lightDiffuseMultiplier;
-				Colour lightColour;
-				bool connectedToSegment;
-				m_pVoxelCharacter->GetLeftWeapon()->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
-
-				if(lightId == -1)
+				for (int i = 0; i < pWeapon->GetNumLights(); i++)
 				{
-					m_pLightingManager->AddLight(vec3(0.0f, 0.0f, 0.0f), 0.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f, 1.0f), &lightId);
-					m_pVoxelCharacter->GetLeftWeapon()->SetLightingId(i, lightId);
-				}
+					unsigned int lightId;
+					vec3 lightPos;
+					float lightRadius;
+					float lightDiffuseMultiplier;
+					Colour lightColour;
+					bool connectedToSegment;
+					pWeapon->GetLightParams(i, &lightId, &lightPos, &lightRadius, &lightDiffuseMultiplier, &lightColour, &connectedToSegment);
 
-				if(connectedToSegment == false)
-				{
-					// Rotate due to characters forward vector
-					float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-					if(m_forward.x < 0.0f)
+					if (lightId == -1)
 					{
-						rotationAngle = -rotationAngle;
+						m_pLightingManager->AddLight(vec3(0.0f), 0.0f, 1.0f, Colour(1.0f, 1.0f, 1.0f, 1.0f), &lightId);
+						pWeapon->SetLightingId(i, lightId);
 					}
-					Matrix4x4 rotationMatrix;
-					rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-					lightPos = rotationMatrix * lightPos;
 
-					// Translate to position
-					lightPos += m_position;
+					if (connectedToSegment == false)
+					{
+						// Rotate due to characters forward vector
+						float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
+						if (m_forward.x < 0.0f)
+						{
+							rotationAngle = -rotationAngle;
+						}
+						Matrix4x4 rotationMatrix;
+						rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
+						lightPos = rotationMatrix * lightPos;
+
+						// Translate to position
+						lightPos += m_position;
+					}
+
+					float scale = m_pVoxelCharacter->GetCharacterScale();
+
+					m_pLightingManager->UpdateLightPosition(lightId, vec3(lightPos.x, lightPos.y, lightPos.z));
+					m_pLightingManager->UpdateLightRadius(lightId, lightRadius * scale);
+					m_pLightingManager->UpdateLightDiffuseMultiplier(lightId, lightDiffuseMultiplier);
+					m_pLightingManager->UpdateLightColour(lightId, lightColour);
 				}
-
-				float scale = m_pVoxelCharacter->GetCharacterScale();
-
-				m_pLightingManager->UpdateLightPosition(lightId, lightPos);
-				m_pLightingManager->UpdateLightRadius(lightId, lightRadius * scale);
-				m_pLightingManager->UpdateLightDiffuseMultiplier(lightId, lightDiffuseMultiplier);
-				m_pLightingManager->UpdateLightColour(lightId, lightColour);
 			}
 		}
 	}
@@ -2454,80 +2431,60 @@ void NPC::UpdateWeaponLights(float dt)
 
 void NPC::UpdateWeaponParticleEffects(float dt)
 {
-	// Create/update
-	if(m_pVoxelCharacter->GetRightWeapon() != NULL)
+	for (int i = 0; i < 2; i++)
 	{
-		if(m_pVoxelCharacter->IsRightWeaponLoaded())
+		VoxelWeapon* pWeapon = NULL;
+		bool isWeaponLoaded = false;
+		if (i == 0)  // Right side
 		{
-			for(int i = 0; i < m_pVoxelCharacter->GetRightWeapon()->GetNumParticleEffects(); i++)
-			{
-				unsigned int particleEffectId;
-				vec3 ParticleEffectPos;
-				string effectName;
-				bool connectedToSegment;
-				m_pVoxelCharacter->GetRightWeapon()->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
-
-				if(particleEffectId == -1)
-				{
-					m_pBlockParticleManager->ImportParticleEffect(effectName, ParticleEffectPos, &particleEffectId);
-					m_pVoxelCharacter->GetRightWeapon()->SetParticleEffectId(i, particleEffectId);
-				}
-
-				if(connectedToSegment == false)
-				{
-					// Rotate due to characters forward vector
-					float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-					if(m_forward.x < 0.0f)
-					{
-						rotationAngle = -rotationAngle;
-					}
-					Matrix4x4 rotationMatrix;
-					rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-					ParticleEffectPos = rotationMatrix * ParticleEffectPos;
-
-					// Translate to position
-					ParticleEffectPos += m_position;
-				}
-
-				m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos);
-			}
+			pWeapon = m_pVoxelCharacter->GetRightWeapon();
+			isWeaponLoaded = m_pVoxelCharacter->IsRightWeaponLoaded();
 		}
-	}
-	if(m_pVoxelCharacter->GetLeftWeapon() != NULL)
-	{
-		if(m_pVoxelCharacter->IsLeftWeaponLoaded())
+		else  // Left side
 		{
-			for(int i = 0; i < m_pVoxelCharacter->GetLeftWeapon()->GetNumParticleEffects(); i++)
+			pWeapon = m_pVoxelCharacter->GetLeftWeapon();
+			isWeaponLoaded = m_pVoxelCharacter->IsLeftWeaponLoaded();
+		}
+
+		if (pWeapon != NULL)
+		{
+			if (isWeaponLoaded)
 			{
-				unsigned int particleEffectId;
-				vec3 ParticleEffectPos;
-				string effectName;
-				bool connectedToSegment;
-				m_pVoxelCharacter->GetLeftWeapon()->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
-
-				if(particleEffectId == -1)
+				for (int i = 0; i < pWeapon->GetNumParticleEffects(); i++)
 				{
-					m_pBlockParticleManager->ImportParticleEffect(effectName, ParticleEffectPos, &particleEffectId);
-					m_pVoxelCharacter->GetLeftWeapon()->SetParticleEffectId(i, particleEffectId);
-				}
+					unsigned int particleEffectId;
+					vec3 ParticleEffectPos;
+					vec3 ParticleEffectPos_NoWorldOffset;
+					string effectName;
+					bool connectedToSegment;
+					pWeapon->GetParticleEffectParams(i, &particleEffectId, &ParticleEffectPos, &effectName, &connectedToSegment);
 
-				if(connectedToSegment == false)
-				{
-					// Rotate due to characters forward vector
-					float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
-					if(m_forward.x < 0.0f)
+					if (particleEffectId == -1)
 					{
-						rotationAngle = -rotationAngle;
+						m_pBlockParticleManager->ImportParticleEffect(effectName, vec3(ParticleEffectPos.x, ParticleEffectPos.y, ParticleEffectPos.z), &particleEffectId);
+						pWeapon->SetParticleEffectId(i, particleEffectId);
+						m_pBlockParticleManager->SetRenderNoWoldOffsetViewport(particleEffectId, true);
 					}
-					Matrix4x4 rotationMatrix;
-					rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
-					ParticleEffectPos = rotationMatrix * ParticleEffectPos;
 
-					// Translate to position
-					ParticleEffectPos += m_position;
+					ParticleEffectPos_NoWorldOffset = ParticleEffectPos;
+					if (connectedToSegment == false)
+					{
+						// Rotate due to characters forward vector
+						float rotationAngle = acos(dot(vec3(0.0f, 0.0f, 1.0f), m_forward));
+						if (m_forward.x < 0.0f)
+						{
+							rotationAngle = -rotationAngle;
+						}
+						Matrix4x4 rotationMatrix;
+						rotationMatrix.SetRotation(0.0f, rotationAngle, 0.0f);
+						ParticleEffectPos = rotationMatrix * ParticleEffectPos;
+
+						// Translate to position
+						ParticleEffectPos += m_position;
+					}
+
+					m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos, ParticleEffectPos_NoWorldOffset);
 				}
-
-				m_pBlockParticleManager->UpdateParticleEffectPosition(particleEffectId, ParticleEffectPos);
 			}
 		}
 	}
@@ -2918,6 +2875,10 @@ void NPC::UpdateMovement(float dt)
 					}
 
 					float movementSpeed = m_movementSpeed * dt;
+					if (movementSpeed > 0.5f)
+					{
+						movementSpeed = 0.5f;
+					}
 					float animationSpeed = (m_movementSpeed / m_maxMovementSpeed);
 
 					if(m_bCanJump && m_bCanInteruptCombatAnim == false)
@@ -2968,7 +2929,7 @@ void NPC::UpdateNPCState(float dt)
 void NPC::UpdatePhysics(float dt)
 {
 	vec3 acceleration;
-	if (IsFrontEndNPC() == false) // Don't do gravity in front-end
+	if (IsFrontEndNPC() == false && IsCreditsNPC() == false) // Don't do gravity in front-end or credits
 	{
 		acceleration = (m_gravityDirection * 9.81f) * 5.0f;
 	}
@@ -3578,7 +3539,7 @@ void NPC::AttackEnabledDelayTimerFinished()
 
 	if(m_eNPCCombatType == eNPCCombatType_Staff)
 	{
-		vec3 fireballSpawnPosition = GetCenter() + (m_forward*0.75f) + (GetRightVector()*-0.4f) + (GetUpVector()*0.5f);
+		vec3 fireballSpawnPosition = GetCenter() + (m_forward*0.75f) + (GetRightVector()*-0.4f) + (GetUpVector()*0.25f);
 
 		float powerAmount = 25.0f;
 		vec3 toTarget = m_pTargetEnemy->GetCenter() - GetCenter();

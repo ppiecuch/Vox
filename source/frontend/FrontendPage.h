@@ -4,6 +4,8 @@
 // Author:      Steven Ball
 //
 // Purpose:
+//   The abstract base class for front-end screens. Contains all the common
+//   functionality and data that all derived front-end pages must overide.
 //
 // Revision History:
 //   Initial Revision - 12/10/14
@@ -38,22 +40,29 @@ public:
 
 	eFrontendScreen GetPageType();
 
+	// Page title and sub-title
 	void SetTitleAndSubtitle(string title, string subtitle);
 	void RemoveTitlesAndSubTitle();
 
+	// Reset
 	virtual void Reset() = 0;
 
+	// Skinning
 	virtual void SkinGUI() = 0;
 	virtual void UnSkinGUI() = 0;
 
+	// Loading
 	virtual void Load() = 0;
 	virtual void Unload() = 0;
 
+	// Camera
 	vec3 GetCameraPosition();
 	vec3 GetCameraView();
 
+	// Update
 	virtual void Update(float dt);
 
+	// Render
 	virtual void Render();
 	virtual void Render2D();
 	virtual void RenderDebug();
@@ -85,6 +94,7 @@ private:
 	/* Private members */
 	eFrontendScreen m_pageType;
 
+	// Page headers and description text
 	Label* m_pPageTitle;
 	Label* m_pPageSubtitle;
 	bool m_addedTitles;

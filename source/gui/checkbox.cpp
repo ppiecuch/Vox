@@ -443,6 +443,18 @@ void CheckBox::SetPressedOffset(int x, int y)
 	m_pressedOffsetY = y;
 }
 
+void CheckBox::SetLabelColour(Colour color)
+{
+	m_label.SetColour(color);
+}
+
+void CheckBox::SetNormalLabelColour(Colour normal)
+{
+	m_normalLabelColour = normal;
+
+	m_bChangeLabelText = true;
+}
+
 void CheckBox::SetHoverLabelColour(Colour hover)
 {
 	m_hoverLabelColour = hover;

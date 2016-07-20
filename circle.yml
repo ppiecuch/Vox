@@ -6,3 +6,4 @@ test:
         - cmake .  # generate the project files
     override:
         - make;  # make the project
+    post:

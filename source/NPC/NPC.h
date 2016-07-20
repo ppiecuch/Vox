@@ -97,6 +97,8 @@ public:
 	// Front-end NPCs
 	void SetFrontEndNPC(bool frontEnd);
 	bool IsFrontEndNPC();
+	void SetPlayerClass(PlayerClass selectedClass);
+	PlayerClass GetPlayerClass();
 
 	// Combat type
 	void SetNPCCombatType(eNPCCombatType eNPCCombatType, bool setWeaponModel);
@@ -108,7 +110,7 @@ public:
 	// Equipping items
 	void ImportEquippedItems(string inventoryFile);
 	void EquipItem(EquipSlot equipSlot, const char* itemFilename, bool left, bool right);
-	void UnequipItem(EquipSlot equipSlot);
+	void UnequipItem(EquipSlot equipSlot, bool left, bool right);
 
 	// Animation
 	void SetAnimationSpeed(float speed, bool onlySetOnCompleteAnimation, AnimationSections section);
@@ -147,6 +149,7 @@ public:
 	void StartWaypointNavigation(int waypointIndex);
 	bool IsInsideWaypoint(int waypointIndex);
 	void SetMoveBackToPosition(vec3 pos);
+	void SetForwards(vec3 dir);
 	void SetTargetForwards(vec3 dir);
 	bool HasReachedTargetPosition();
 
@@ -308,6 +311,9 @@ private:
 
 	// Frontend NPC flag
 	bool m_frontEndNPC;
+
+	// What class are we for the front-end character lineup
+	PlayerClass m_selectedClass;
 
 	// Idle flag
 	bool m_bIsIdle;

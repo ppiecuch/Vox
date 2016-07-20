@@ -46,6 +46,9 @@ public:
 	void Load();
 	void Unload();
 
+	// Disable options
+	void DisableShadowOption();
+
 	// Update
 	void Update(float dt);
 
@@ -73,6 +76,15 @@ protected:
 	static void _ControlsTabPressed(void *pData);
 	void ControlsTabPressed();
 
+	static void _ToggleFullScreenPressed(void *pData);
+	void ToggleFullScreenPressed();
+
+	static void _CustomCursorsTogglePressed(void *pData);
+	void CustomCursorsTogglePressed();
+
+	static void _RenderHUDTogglePressed(void *pData);
+	void RenderHUDTogglePressed();
+
 private:
 	/* Private methods */
 
@@ -93,6 +105,8 @@ private:
 	int m_optionsWindowHeight;
 	int m_titlebarWidth;
 	int m_titlebarHeight;
+
+	bool m_initiallyUsingCustomCursors;
 
 	// Options window
 	GUIWindow* m_pOptionsWindow;
@@ -120,6 +134,10 @@ private:
 	Icon* m_pSliderBackgroundIcon_GamepadSensativity;
 
 	// Graphics
+	CheckBox* m_pShadowsCheckBox;
+	CheckBox* m_pFogRenderCheckBox;
+	CheckBox* m_pWaterRenderCheckBox;
+	Button* m_pFullscreenButton;
 
 	// Sound
 	CheckBox* m_pSoundEffects;

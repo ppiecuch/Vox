@@ -35,6 +35,13 @@ void VoxGame::Update()
 	m_fps = 1.0f / m_deltaTime;
 	m_fpsPreviousTicks = m_fpsCurrentTicks;
 
+	float maxDeltaTime = 0.25f;
+	if (m_deltaTime > maxDeltaTime)
+	{
+		cout << "Warning: DeltaTime exceeded sensible value, switching dt from " << m_deltaTime << " to " << maxDeltaTime << ".\n";
+		m_deltaTime = maxDeltaTime;
+	}
+
 	// Update interpolator singleton
 	Interpolator::GetInstance()->Update(m_deltaTime);
 
@@ -43,6 +50,9 @@ void VoxGame::Update()
 
 	// Update the time manager (countdowntimers);
 	TimeManager::GetInstance()->Update(m_deltaTime);
+
+	// Update the audio manager
+	AudioManager::GetInstance()->Update(m_pGameCamera->GetPosition(), m_pGameCamera->GetFacing(), m_pGameCamera->GetUp());
 
 	// Update the initial wait timer and variables, so we dont do gameplay updates straight away
 	if (m_initialStartWait == true)
@@ -58,7 +68,22 @@ void VoxGame::Update()
 		}
 	}
 
-	// Animation update
+	// Update the current biome
+	Biome currentBiome = m_pBiomeManager->GetBiome(m_pPlayer->GetCenter());
+	if (currentBiome != m_currentBiome)
+	{
+		m_pSkybox->SetCurrentBiome(currentBiome);
+		m_currentBiome = currentBiome;
+	}
+	
+	// Update game music
+	if (m_gameMode == GameMode_Game)
+	{
+		UpdateGameMusic(m_deltaTime);
+	}
+	UpdateMusicVolume(0.0f);
+
+	// Main components update
 	if (m_bPaused == false && m_initialStartWait == false)
 	{
 		// Update the lighting manager
@@ -98,6 +123,9 @@ void VoxGame::Update()
 		// Update the enemy manager
 		m_pEnemyManager->Update(m_deltaTime);
 
+		// Update the biome manager
+		m_pBiomeManager->Update(m_deltaTime);
+
 		// Player
 		if (m_animationUpdate)
 		{
@@ -110,6 +138,9 @@ void VoxGame::Update()
 			vec3 playerMovementChanged = m_pPlayer->GetPositionMovementAmount();
 			m_pGameCamera->SetFakePosition(m_pGameCamera->GetFakePosition() + playerMovementChanged);
 		}
+
+		// Water
+		m_elapsedWaterTime += m_deltaTime;
 	}
 
 	// Update the chunk manager
@@ -167,7 +198,7 @@ void VoxGame::Update()
 	int x = m_pVoxWindow->GetCursorX();
 	int y = m_pVoxWindow->GetCursorY();
 	m_pGUI->Update(m_deltaTime);
-	if (m_pVoxWindow->IsCursorOn())
+	if (IsCursorOn())
 	{
 		m_pGUI->ImportMouseMotion(x, m_windowHeight - y);
 	}

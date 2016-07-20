@@ -31,48 +31,36 @@ MainMenu::MainMenu(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendManager* pFront
 	m_pSinglePlayerButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Single Player", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pSinglePlayerButton->SetLabelOffset(0, 5);
 	m_pSinglePlayerButton->SetPressedOffset(0, -4);
-	//m_pSinglePlayerButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pSinglePlayerButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pSinglePlayerButton->SetCallBackFunction(_SinglePlayerPressed);
 	m_pSinglePlayerButton->SetCallBackData(this);
 
 	m_pMultiPlayerButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Multiplayer", Colour(0.75f, 0.75f, 0.75f, 1.0f), Colour(0.25f, 0.25f, 0.25f, 1.0f));
 	m_pMultiPlayerButton->SetLabelOffset(0, 5);
-	//m_pMultiPlayerButton->SetPressedOffset(0, -4);
-	//m_pMultiPlayerButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pMultiPlayerButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pMultiPlayerButton->SetPressedOffset(0, -4);
 	m_pMultiPlayerButton->SetCallBackFunction(_MultiPlayerPressed);
 	m_pMultiPlayerButton->SetCallBackData(this);
 
 	m_pOptionsButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Options", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pOptionsButton->SetLabelOffset(0, 5);
 	m_pOptionsButton->SetPressedOffset(0, -4);
-	//m_pOptionsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pOptionsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pOptionsButton->SetCallBackFunction(_OptionsPressed);
 	m_pOptionsButton->SetCallBackData(this);
 
 	m_pModsButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Mods", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pModsButton->SetLabelOffset(0, 5);
 	m_pModsButton->SetPressedOffset(0, -4);
-	//m_pModsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pModsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pModsButton->SetCallBackFunction(_ModsPressed);
 	m_pModsButton->SetCallBackData(this);
 
 	m_pCreditsButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Credits", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pCreditsButton->SetLabelOffset(0, 5);
 	m_pCreditsButton->SetPressedOffset(0, -4);
-	//m_pCreditsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pCreditsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pCreditsButton->SetCallBackFunction(_CreditsPressed);
 	m_pCreditsButton->SetCallBackData(this);
 
 	m_pQuitButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Quit", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pQuitButton->SetLabelOffset(0, 5);
 	m_pQuitButton->SetPressedOffset(0, -4);
-	//m_pQuitButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pQuitButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pQuitButton->SetCallBackFunction(_QuitPressed);
 	m_pQuitButton->SetCallBackData(this);
 
@@ -128,6 +116,25 @@ void MainMenu::SkinGUI()
 	m_pFrontendManager->SetButtonIcons(m_pModsButton, ButtonSize_225x75);
 	m_pFrontendManager->SetButtonIcons(m_pCreditsButton, ButtonSize_225x75);
 	m_pFrontendManager->SetButtonIcons(m_pQuitButton, ButtonSize_225x75);
+
+	m_pSinglePlayerButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSinglePlayerButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pSinglePlayerButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pMultiPlayerButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pMultiPlayerButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pMultiPlayerButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pOptionsButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pOptionsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pOptionsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pModsButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pModsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pModsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pCreditsButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreditsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCreditsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pQuitButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pQuitButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pQuitButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void MainMenu::UnSkinGUI()
@@ -142,12 +149,12 @@ void MainMenu::UnSkinGUI()
 
 void MainMenu::Load()
 {
-	//m_pSinglePlayerButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pMultiPlayerButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pOptionsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pModsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreditsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pQuitButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pSinglePlayerButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pMultiPlayerButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pOptionsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pModsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreditsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pQuitButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	//m_blurAmount = 0.0f;
 	//Interpolator::GetInstance()->AddFloatInterpolation(&m_blurAmount, 0.0f, 0.00125f, 3.0f, 0.0f);

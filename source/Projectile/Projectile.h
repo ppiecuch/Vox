@@ -78,6 +78,7 @@ public:
 	bool CanAttackNPCs();
 	void SetReturnToPlayer(bool returnToPlayer);
 	bool IsReturnToPlayer();
+	void SetExplodingProjectile(bool exploding, float radius);
 
 	void SetOwner(Player* pPlayer, NPC* pNPC, Enemy* pEnemy);
 	Player* GetPlayerOwner();
@@ -172,6 +173,10 @@ private:
 	// World collision flag
 	bool m_worldCollisionEnabled;
 
+	// Explosion
+	bool m_explodeWorld;
+	float m_explosionRadius;
+
 	// Return to player flag
 	bool m_returnToPlayer;
 	float m_catchTimer;
@@ -188,6 +193,7 @@ private:
 	vec3 m_bezierEnd_Left;
 	vec3 m_bezierControl_Left;
 
+	// Projectile owner
 	Player* m_pOwnedPlayer;
 	NPC* m_pOwnedNPC;
 	Enemy* m_pOwnedEnemy;

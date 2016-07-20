@@ -49,10 +49,16 @@ private:
 public:
 	/* Public members */
 	
+	// Options ini file
 	// Gameplay
 	bool m_invertedMouse;
 	float m_mouseSensitivity;
 	float m_gamepadSensitivity;
+
+	// Graphics
+	bool m_shadows;
+	bool m_fogRendering;
+	bool m_waterRendering;
 
 	// Sound
 	bool m_audio;
@@ -60,13 +66,24 @@ public:
 	bool m_music;
 	float m_musicVolume;
 
+	// Interface
+	bool m_renderGUI;
+	bool m_renderCrosshair;
+	bool m_HUDAnimations;
+	bool m_customCursors;
+	bool m_equipHelper;
+	bool m_tooltipDelay;
+	bool m_confirmItemDelete;
+
+	// Controls
+
+	// Settings ini file
 	// Graphics
 	int m_windowWidth;
 	int m_windowHeight;
 	bool m_vsync;
 	bool m_fullscreen;
 	bool m_deferredRendering;
-	bool m_shadows;
 	bool m_blur;
 	bool m_ssao;
 	bool m_dynamicLighting;

@@ -199,7 +199,7 @@ void Quest::ExportQuest()
 			}
 			else
 			{
-				exportFile << NULL << "|0|";
+				exportFile << 0 << "|0|";
 			}
 
 			if(m_vpObjectives[i]->m_placementItem)

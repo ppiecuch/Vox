@@ -113,7 +113,7 @@ void Button::AddText(Renderer* pRenderer, unsigned int GUIFont, unsigned int Out
 {
 	Label* lpNewLabel = new Label(pRenderer, GUIFont, label, colour);
 	lpNewLabel->SetLocation(xOffset, yOffset);
-	lpNewLabel->SetDepth(lpNewLabel->GetDepth()+1.0f);
+	lpNewLabel->SetDepth(lpNewLabel->GetDepth()+2.0f);
 
 	if(outline)
 	{

@@ -89,6 +89,19 @@ void PauseMenu::SkinGUI()
 	m_pFrontendManager->SetButtonIcons(m_pModsButton, ButtonSize_110x47);
 	m_pFrontendManager->SetButtonIcons(m_pOptionsButton, ButtonSize_110x47);
 	m_pFrontendManager->SetButtonIcons(m_pQuitButton, ButtonSize_110x47);
+
+	m_pResumeButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pResumeButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pResumeButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pModsButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pModsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pModsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pOptionsButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pOptionsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pOptionsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pQuitButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pQuitButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pQuitButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void PauseMenu::UnSkinGUI()
@@ -101,6 +114,11 @@ void PauseMenu::UnSkinGUI()
 
 void PauseMenu::Load()
 {
+	m_pResumeButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pModsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pOptionsButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pQuitButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+
 	m_pGUI->AddComponent(m_pResumeButton);
 	m_pGUI->AddComponent(m_pOptionsButton);
 	m_pGUI->AddComponent(m_pModsButton);

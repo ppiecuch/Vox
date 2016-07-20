@@ -665,7 +665,7 @@ void LootGUI::ShowTooltip(LootSlotItem* pInventoryItem)
 	case EquipSlot_Head: { sprintf(slotText, "Head"); break; }
 	case EquipSlot_Shoulders: { sprintf(slotText, "Shoulders"); break; }
 	case EquipSlot_Body: { sprintf(slotText, "Body"); break; }
-	case EquipSlot_Legs: { sprintf(slotText, "Lefs"); break; }
+	case EquipSlot_Legs: { sprintf(slotText, "Legs"); break; }
 	case EquipSlot_Hand: { sprintf(slotText, "Hand"); break; }
 	case EquipSlot_Feet: { sprintf(slotText, "Feet"); break; }
 	case EquipSlot_Accessory1: { sprintf(slotText, "Accessory 1"); break; }
@@ -736,7 +736,7 @@ void LootGUI::ShowTooltip(LootSlotItem* pInventoryItem)
 
 	m_tooltipQuality = pInventoryItem->m_pInventoryItem->m_itemQuality;
 
-	m_tooltipAppearDelayTimer = 0.5f;
+	m_tooltipAppearDelayTimer = m_pFrontendManager->GetToolTipAppearDelay();
 
 	m_toolTipVisible = true;
 	m_toolTipComponentsAdded = false;
@@ -889,7 +889,7 @@ void LootGUI::LootItemReleased(LootSlotItem* pLootItem)
 							m_pActionBar->RemoveInventoryItemFromActionBar(pInventoryItem->m_title);
 						}
 
-						m_pPlayer->UnequipItem(pLootItem->m_pInventoryItem->m_equipSlot);
+						m_pPlayer->UnequipItem(pLootItem->m_pInventoryItem->m_equipSlot, pLootItem->m_pInventoryItem->m_left, pLootItem->m_pInventoryItem->m_right);
 						m_pInventoryManager->EquipLootItem(pLootItem->m_slotX, pLootItem->m_slotY, pLootItem->m_pInventoryItem, pLootItem->m_pInventoryItem->m_equipSlot);
 						m_pInventoryGUI->EquipItem(pLootItem);
 
@@ -1008,9 +1008,8 @@ void LootGUI::LootItemReleased(LootSlotItem* pLootItem)
 
 							switched = true;
 							draggedToInventory = true;
-						}
-						else
-						{
+
+							VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
 						}
 					}
 				}
@@ -1021,6 +1020,8 @@ void LootGUI::LootItemReleased(LootSlotItem* pLootItem)
 	if(switched && draggedToInventory == false && sameSlot == false && equipped == false)
 	{
 		ShowTooltip(pLootItem);
+
+		VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
 	}
 
 	if(sameSlot)
@@ -1039,6 +1040,8 @@ void LootGUI::LootItemReleased(LootSlotItem* pLootItem)
 			RemoveLootItem(pLootItem);
 
 			m_pCharacterGUI->HideEquipHover();
+
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_EquipMove);
 		}
 	}
 
@@ -1104,6 +1107,6 @@ void LootGUI::CloseExitPressed()
 
 	if (VoxGame::GetInstance()->IsGUIWindowStillDisplayed() == false)
 	{
-		VoxGame::GetInstance()->TurnCursorOff();
+		VoxGame::GetInstance()->TurnCursorOff(false);
 	}
 }

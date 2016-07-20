@@ -82,6 +82,13 @@ void QuitPopup::SkinGUI()
 
 	m_pFrontendManager->SetButtonIcons(m_pConfirmButton, ButtonSize_110x47);
 	m_pFrontendManager->SetButtonIcons(m_pCancelButton, ButtonSize_110x47);
+
+	m_pConfirmButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pConfirmButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pConfirmButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pCancelButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCancelButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCancelButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void QuitPopup::UnSkinGUI()
@@ -92,6 +99,9 @@ void QuitPopup::UnSkinGUI()
 
 void QuitPopup::Load()
 {
+	m_pConfirmButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCancelButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+
 	m_pGUI->AddComponent(m_pQuitText);
 	m_pGUI->AddComponent(m_pBackgroundIcon);
 	m_pGUI->AddComponent(m_pCancelButton);

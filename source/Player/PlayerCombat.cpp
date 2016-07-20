@@ -51,6 +51,8 @@ void Player::PressAttack()
 					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BowCharge", 0.2f);
 					m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BowCharge", 0.2f);
 				}
+
+				VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_BowDraw);
 			}
 		}
 	}
@@ -81,15 +83,25 @@ void Player::PressAttack()
 	}
 	else if (IsStaff())
 	{
-		if (CanAttackRight())
+		if (m_magic >= 10.0f)
 		{
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "StaffAttack", 0.01f);
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "StaffAttack", 0.01f);
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "StaffAttack", 0.01f);
+			if (CanAttackRight())
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "StaffAttack", 0.01f);
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "StaffAttack", 0.01f);
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Head_Body, false, AnimationSections_Head_Body, "StaffAttack", 0.01f);
 
-			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.2f, 0.2f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+				m_bCanInteruptCombatAnim = false;
 
-			m_bCanAttackRight = false;
+				Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.2f, 0.2f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+
+				m_magic -= 10.0f;
+				VoxGame::GetInstance()->GetHUD()->UpdatePlayerData();
+
+				m_bCanAttackRight = false;
+			}
+
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_FireballCast, 0.5f);
 		}
 	}
 	else if (IsWand())
@@ -97,12 +109,72 @@ void Player::PressAttack()
 	}
 	else if (IsBomb())
 	{
+		if (CanAttackRight())
+		{
+			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_FullBody, "SwordAttack2", 0.01f);
+			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "SwordAttack2", 0.01f);
+
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.25f, 0.25f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+
+			m_bCanAttackRight = false;
+		}
 	}
 	else if (IsConsumable())
 	{
 	}
 	else if (IsDagger())
 	{
+		InventoryItem* pRightHand = m_pInventoryManager->GetInventoryItemForEquipSlot(EquipSlot_RightHand);
+		InventoryItem* pLeftHand = m_pInventoryManager->GetInventoryItemForEquipSlot(EquipSlot_LeftHand);
+
+		if (pRightHand != NULL && pRightHand->m_itemType == InventoryType_Weapon_Dagger && CanAttackRight())
+		{
+			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "SwordAttack2", 0.01f);
+
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.3f, 0.3f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+
+			m_bCanInteruptCombatAnim = true;
+
+			m_attackEnabledDelayTimer = 0.0f;
+			m_attackSegmentAngle = 0.75f;
+			float attackTime = 0.4f;
+			float startRotation = -10.0f;
+			float endRotation = -10.0f;
+			float easingRotation = 0.0f;
+
+			m_attackEnabled = true;
+			m_attackEnabledTimer = 0.0f;
+			m_attackRotation = startRotation;
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledTimer, 0.0f, attackTime, attackTime, 0.0f, NULL, _AttackEnabledTimerFinished, this);
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledDelayTimer, m_attackEnabledDelayTimer, 0.0f, m_attackEnabledDelayTimer, 0.0f, NULL, _AttackEnabledDelayTimerFinished, this);
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackRotation, startRotation, endRotation, attackTime, easingRotation);
+
+			m_bCanAttackRight = false;
+		}
+		else if (pLeftHand != NULL && pLeftHand->m_itemType == InventoryType_Weapon_Dagger && CanAttackLeft())
+		{
+			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "SwordAttack2", 0.01f);
+
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.3f, 0.3f, 0.0f, NULL, _AttackAnimationTimerFinished_Alternative, this);
+
+			m_bCanInteruptCombatAnim = true;
+
+			m_attackEnabledDelayTimer = 0.0f;
+			m_attackSegmentAngle = 0.75f;
+			float attackTime = 0.4f;
+			float startRotation = -10.0f;
+			float endRotation = -10.0f;
+			float easingRotation = 0.0f;
+
+			m_attackEnabled = true;
+			m_attackEnabledTimer = 0.0f;
+			m_attackRotation = startRotation;
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledTimer, 0.0f, attackTime, attackTime, 0.0f, NULL, _AttackEnabledTimerFinished, this);
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledDelayTimer, m_attackEnabledDelayTimer, 0.0f, m_attackEnabledDelayTimer, 0.0f, NULL, _AttackEnabledDelayTimerFinished, this);
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackRotation, startRotation, endRotation, attackTime, easingRotation);
+
+			m_bCanAttackLeft = false;
+		}
 	}
 	else if (IsHammer())
 	{
@@ -120,6 +192,10 @@ void Player::PressAttack()
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, true, AnimationSections_FullBody, "Mine", 0.01f);
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "Mine", 0.01f);
 
+			m_bCanInteruptCombatAnim = false;
+
+			Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.4f, 0.4f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+
 			m_bCanAttackRight = false;
 		}
 	}
@@ -134,7 +210,7 @@ void Player::PressAttack()
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "2HandedSwordAttack", 0.01f);
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "2HandedSwordAttack", 0.01f);
 
-			m_bCanAttackRight = false;
+			m_bCanInteruptCombatAnim = false;
 
 			m_attackEnabledDelayTimer = 0.175f;
 			m_attackSegmentAngle = 0.60f;
@@ -150,6 +226,7 @@ void Player::PressAttack()
 			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackEnabledDelayTimer, m_attackEnabledDelayTimer, 0.0f, m_attackEnabledDelayTimer, 0.0f, NULL, _AttackEnabledDelayTimerFinished, this);
 			Interpolator::GetInstance()->AddFloatInterpolation(&m_attackRotation, startRotation, endRotation, attackTime, easingRotation);
 
+			m_bCanAttackRight = false;
 		}
 	}
 	else if (IsSword())
@@ -169,7 +246,7 @@ void Player::PressAttack()
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "SwordAttack1", 0.01f);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "SwordAttack1", 0.01f);
 
-				m_bCanInteruptCombatAnim = true;
+				m_bCanInteruptCombatAnim = false;
 
 				m_attackEnabledDelayTimer = 0.1f;
 				m_attackSegmentAngle = 0.75f;
@@ -185,7 +262,7 @@ void Player::PressAttack()
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "SwordAttack2", 0.01f);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "SwordAttack1", 0.01f);
 
-				m_bCanInteruptCombatAnim = true;
+				m_bCanInteruptCombatAnim = false;
 
 				m_attackEnabledDelayTimer = 0.2f;
 				m_attackSegmentAngle = 0.75f;
@@ -229,6 +306,36 @@ void Player::PressAttack()
 	}
 	else if (IsSpellHands())
 	{
+		if (m_magic >= 5.0f)
+		{
+			InventoryItem* pRightHand = m_pInventoryManager->GetInventoryItemForEquipSlot(EquipSlot_RightHand);
+			InventoryItem* pLeftHand = m_pInventoryManager->GetInventoryItemForEquipSlot(EquipSlot_LeftHand);
+
+			if (pRightHand != NULL && pRightHand->m_itemType == InventoryType_Weapon_SpellHands && CanAttackRight())
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "HandSpellCastRight", 0.01f);
+
+				Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.3f, 0.3f, 0.0f, NULL, _AttackAnimationTimerFinished, this);
+
+				m_magic -= 5.0f;
+				VoxGame::GetInstance()->GetHUD()->UpdatePlayerData();
+
+				m_bCanAttackRight = false;
+			}
+			else if (pLeftHand != NULL && pLeftHand->m_itemType == InventoryType_Weapon_SpellHands && CanAttackLeft())
+			{
+				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "HandSpellCastLeft", 0.01f);
+
+				Interpolator::GetInstance()->AddFloatInterpolation(&m_animationTimer, 0.0f, 0.3f, 0.3f, 0.0f, NULL, _AttackAnimationTimerFinished_Alternative, this);
+
+				m_magic -= 5.0f;
+				VoxGame::GetInstance()->GetHUD()->UpdatePlayerData();
+
+				m_bCanAttackLeft = false;
+			}
+
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_FireballCast, 0.5f);
+		}
 	}
 	else if (IsShield())
 	{
@@ -269,6 +376,8 @@ void Player::ReleaseAttack()
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Left_Arm_Hand, false, AnimationSections_Left_Arm_Hand, "BindPose", 0.2f);
 				m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_Right_Arm_Hand, false, AnimationSections_Right_Arm_Hand, "BindPose", 0.2f);
 			}
+
+			VoxGame::GetInstance()->PlaySoundEffect(eSoundEffect_ArrowRelease);
 		}
 	}
 }
@@ -301,6 +410,47 @@ float Player::GetAttackRotation()
 float Player::GetAttackSegmentAngle()
 {
 	return m_attackSegmentAngle;
+}
+
+void Player::CheckEnemyDamageRadius(Enemy* pEnemy)
+{
+	if (IsDead())
+	{
+		return;
+	}
+
+	if (pEnemy->GetAttackEnabled() == false)
+	{
+		// If attack is not enabled, just return
+		return;
+	}
+
+	vec3 distance = GetCenter() - pEnemy->GetCenter();
+	float lengthToEnemy = length(distance);
+	if (lengthToEnemy <= m_radius + pEnemy->GetAttackRadius())
+	{
+		vec3 distance_minus_y = distance;
+		distance_minus_y.y = 0.0f;
+		vec3 direction = normalize(distance_minus_y);
+
+		// Figure out the attack vector, based on the attack rotation
+		float enemyRotation = pEnemy->GetRotation();
+		float attackRotation = pEnemy->GetAttackRotation();
+		float angle = DegToRad(enemyRotation + attackRotation);
+		vec3 attackDirection = vec3(sin(angle), 0.0f, cos(angle));
+		float dotProduct = dot(direction, attackDirection);
+
+		if (dotProduct > pEnemy->GetAttackSegmentAngle()) // Check if we are within the attack segment
+		{
+			vec3 knockbackDirection = (direction*2.0f) + vec3(0.0f, 1.0f, 0.0f);
+			knockbackDirection = normalize(knockbackDirection);
+			Colour damageColour = Colour(1.0f, 1.0f, 1.0f);
+
+			float knockbackAmount = 16.0f;
+
+			DoDamage(5.0f, damageColour, knockbackDirection, knockbackAmount, true);
+		}
+	}
 }
 
 void Player::CheckProjectileDamageRadius(Projectile* pProjectile)
@@ -463,6 +613,9 @@ void Player::DoDamage(float amount, Colour textColour, vec3 knockbackDirection, 
 		m_returnToNormalFacialExpressionAfterHit = false;
 
 		m_damageTimer = m_damageTime;
+
+		// Close the interaction GUI compoenents
+		VoxGame::GetInstance()->CloseInteractionGUI();
 	}
 
 	if (IsDead())
@@ -551,11 +704,11 @@ void Player::Explode()
 	char tombstoneFilename[64];
 	if (GetRandomNumber(0, 100) > 35)
 	{
-		sprintf(tombstoneFilename, "media/gamedata/items/Tombstone/tombstone1.item");
+		sprintf(tombstoneFilename, "media/gamedata/items/Tombstone/Tombstone1.item");
 	}
 	else
 	{
-		sprintf(tombstoneFilename, "media/gamedata/items/Tombstone/tombstone2.item");
+		sprintf(tombstoneFilename, "media/gamedata/items/Tombstone/Tombstone2.item");
 	}
 	Item* pTombstone = m_pItemManager->CreateItem(GetCenter(), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), tombstoneFilename, eItem_Tombstone, "Tombstone", false, false, 0.08f);
 	pTombstone->SetVelocity(vec3(0.0f, 10.0f, 0.0f));
@@ -574,6 +727,10 @@ void Player::Respawn()
 	}
 
 	m_position = m_respawnPosition;
+	
+	// Make sure we create a chunk in the respawn position
+	UpdateGridPosition();
+	m_pChunkManager->CreateNewChunk(GetGridX(), GetGridY(), GetGridZ());
 
 	m_health = m_maxHealth;
 
@@ -585,7 +742,7 @@ void Player::Respawn()
 		InventoryItem* pItem = m_pInventoryManager->GetInventoryItemForEquipSlot((EquipSlot)i);
 		if (pItem != NULL)
 		{
-			EquipItem(pItem);
+			EquipItem(pItem, true);
 		}
 	}
 
@@ -613,11 +770,7 @@ void Player::SetTargetEnemy(Enemy* pTargetEnemy)
 
 		CalculateWorldTransformMatrix();
 
-		if (IsBow())
-		{
-			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "BowStance", 0.2f);
-		}
-		else if (Is2HandedSword())
+		if (Is2HandedSword())
 		{
 			m_pVoxelCharacter->BlendIntoAnimation(AnimationSections_FullBody, false, AnimationSections_FullBody, "2HandedSwordPose", 0.2f);
 		}
@@ -682,6 +835,43 @@ vec3 Player::GetProjectileHitboxCenter()
 	return GetCenter() + m_projectileHitboxCenterOffset;
 }
 
+// World editing
+void Player::DestroyBlock()
+{
+	if (m_blockSelection)
+	{
+		Chunk* pChunk = m_pChunkManager->GetChunkFromPosition(m_blockSelectionPos.x, m_blockSelectionPos.y, m_blockSelectionPos.z);
+
+		if (pChunk != NULL)
+		{
+			int blockX, blockY, blockZ;
+			vec3 blockPos;
+			bool active = m_pChunkManager->GetBlockActiveFrom3DPosition(m_blockSelectionPos.x, m_blockSelectionPos.y, m_blockSelectionPos.z, &blockPos, &blockX, &blockY, &blockZ, &pChunk);
+			if (active)
+			{
+				float r;
+				float g;
+				float b;
+				float a;
+				pChunk->GetColour(blockX, blockY, blockZ, &r, &g, &b, &a);
+
+				pChunk->StartBatchUpdate();
+				pChunk->SetColour(blockX, blockY, blockZ, 0);
+				pChunk->StopBatchUpdate();
+
+				m_pChunkManager->CreateBlockDestroyParticleEffect(r, g, b, a, m_blockSelectionPos);
+
+				// Create the collectible block item
+				BlockType blockType = pChunk->GetBlockType(blockX, blockY, blockZ);
+				m_pChunkManager->CreateCollectibleBlock(blockType, m_blockSelectionPos);
+			}
+		}
+
+		m_blockSelection = false;
+	}
+}
+
+// Static callbacks
 void Player::_AttackEnabledTimerFinished(void *apData)
 {
 	Player* lpPlayer = (Player*)apData;
@@ -726,6 +916,14 @@ void Player::AttackAnimationTimerFinished()
 		}
 
 		vec3 boomerangTarget = boomerangSpawnPosition + m_forward*15.0f + (vec3(0.0f, 1.0f, 0.0f) * cameraModification);
+		if (m_pTargetEnemy != NULL)
+		{
+			boomerangTarget = m_pTargetEnemy->GetProjectileHitboxCenter();
+			if (m_pTargetEnemy->IsMoving())
+			{
+				boomerangTarget += m_pTargetEnemy->GetForwardVector() * (m_pTargetEnemy->GetMovementSpeed() / 3.0f);
+			}
+		}
 
 		float curveTime = length(boomerangTarget - boomerangSpawnPosition) / 15.0f;
 		if (curveTime <= 0.4f)
@@ -772,6 +970,55 @@ void Player::AttackAnimationTimerFinished()
 	}
 	else if (IsBomb())
 	{
+		vec3 bombSpawnPosition = GetCenter() + (m_forward*0.75f) + (GetUpVector()*0.5f);
+
+		float liftAmount = 8.0f;
+		float powerAmount = 30.0f;
+		float cameraMultiplier = 25.0f;
+
+		if (VoxGame::GetInstance()->GetCameraMode() == CameraMode_FirstPerson)
+		{
+			cameraMultiplier = 30.0f;
+		}
+
+		vec3 bombSpawnVelocity;
+		if (m_pTargetEnemy)
+		{
+			// Enemy target
+			vec3 toTarget = m_pTargetEnemy->GetCenter() - GetCenter();
+			float toTargetDistance = length(toTarget);
+			liftAmount += toTargetDistance * 0.04f;
+			bombSpawnVelocity = (normalize(toTarget) * powerAmount) + vec3(0.0f, liftAmount, 0.0f);
+		}
+		else
+		{
+			bombSpawnVelocity = (m_forward * powerAmount) + (GetUpVector() * liftAmount) + vec3(0.0f, 1.0f, 0.0f) * (m_cameraForward.y*cameraMultiplier);
+		}
+
+		Projectile* pProjectile = m_pProjectileManager->CreateProjectile(bombSpawnPosition, bombSpawnVelocity, 0.0f, "media/gamedata/items/Bomb/BombThrown.item", 0.05f);
+		pProjectile->SetProjectileType(true, false, false);
+		pProjectile->SetOwner(this, NULL, NULL);
+		pProjectile->SetGravityMultiplier(3.5f);
+		float explodeRadius = 3.5f - (GetRandomNumber(-150, 0, 2) * 0.01f);
+		pProjectile->SetExplodingProjectile(true, explodeRadius);
+
+		//m_pVoxelCharacter->SetRenderRightWeapon(false);
+
+		InventoryItem* pItem = m_pInventoryManager->GetInventoryItemForEquipSlot(EquipSlot_RightHand);
+		if (pItem != NULL)
+		{
+			if (pItem->m_quantity != -1)
+			{
+				pItem->m_quantity -= 1;
+			}
+			if (pItem->m_quantity == 0)
+			{
+				// Remove this item from the manager, and remove it from the inventory and GUI
+				UnequipItem(EquipSlot_RightHand, false, false);
+				m_pInventoryManager->RemoveInventoryItem(EquipSlot_RightHand);
+				m_pActionBar->RemoveInventoryItemFromActionBar(pItem->m_title);
+			}
+		}
 	}
 	else if (IsConsumable())
 	{
@@ -797,8 +1044,7 @@ void Player::AttackAnimationTimerFinished()
 		}
 		else
 		{
-			// TODO : DestroyBlock functionality
-			//DestroyBlock();
+			DestroyBlock();
 		}
 	}
 	else if (IsAxe())
@@ -821,6 +1067,128 @@ void Player::AttackAnimationTimerFinished()
 	}
 	else if (IsSpellHands())
 	{
+		float powerAmount = 25.0f;
+		float cameraMultiplier = 25.0f;
+
+		vec3 spellSpawnPosition = GetCenter() + (m_forward*0.5f) + (GetUpVector()*0.0f);
+
+		// For right hand
+		spellSpawnPosition += -(GetRightVector()*0.4f);
+
+		if (VoxGame::GetInstance()->GetCameraMode() == CameraMode_FirstPerson)
+		{
+			cameraMultiplier = 30.0f;
+			spellSpawnPosition.y += 0.75f;
+		}
+
+		vec3 spellSpawnVelocity = m_forward * powerAmount + vec3(0.0f, 1.0f, 0.0f) * (m_cameraForward.y*cameraMultiplier);
+
+		if (m_pTargetEnemy != NULL)
+		{
+			vec3 toTarget = m_pTargetEnemy->GetProjectileHitboxCenter() - GetCenter();
+			spellSpawnVelocity = (normalize(toTarget) * powerAmount);
+		}
+
+		Projectile* pProjectile = m_pProjectileManager->CreateProjectile(spellSpawnPosition, spellSpawnVelocity, 0.0f, "media/gamedata/items/Fireball/FireballBlue.item", 0.05f);
+		pProjectile->SetProjectileType(true, false, false);
+		pProjectile->SetOwner(this, NULL, NULL);
+		pProjectile->SetGravityMultiplier(0.0f);
+	}
+	else if (IsShield())
+	{
+	}
+	else if (IsTorch())
+	{
+	}
+}
+
+void Player::_AttackAnimationTimerFinished_Alternative(void *apData)
+{
+	Player* lpPlayer = (Player*)apData;
+	lpPlayer->AttackAnimationTimerFinished_Alternative();
+}
+
+void Player::AttackAnimationTimerFinished_Alternative()
+{
+	if (IsBow())
+	{
+	}
+	else if (IsBoomerang())
+	{
+	}
+	else if (IsStaff())
+	{
+	}
+	else if (IsWand())
+	{
+	}
+	else if (IsBomb())
+	{
+	}
+	else if (IsConsumable())
+	{
+	}
+	else if (IsDagger())
+	{
+	}
+	else if (IsHammer())
+	{
+	}
+	else if (IsMace())
+	{
+	}
+	else if (IsSickle())
+	{
+	}
+	else if (IsPickaxe())
+	{
+	}
+	else if (IsAxe())
+	{
+	}
+	else if (Is2HandedSword())
+	{
+	}
+	else if (IsSword())
+	{
+	}
+	else if (IsBlockPlacing())
+	{
+	}
+	else if (IsItemPlacing())
+	{
+	}
+	else if (IsSceneryPlacing())
+	{
+	}
+	else if (IsSpellHands())
+	{
+		float powerAmount = 25.0f;
+		float cameraMultiplier = 25.0f;
+
+		vec3 spellSpawnPosition = GetCenter() + (m_forward*0.5f) + (GetUpVector()*0.0f);
+
+		// For left hand
+		spellSpawnPosition += (GetRightVector()*0.4f);
+
+		if (VoxGame::GetInstance()->GetCameraMode() == CameraMode_FirstPerson)
+		{
+			cameraMultiplier = 30.0f;
+			spellSpawnPosition.y += 0.75f;
+		}
+
+		vec3 spellSpawnVelocity = m_forward * powerAmount + vec3(0.0f, 1.0f, 0.0f) * (m_cameraForward.y*cameraMultiplier);
+
+		if (m_pTargetEnemy != NULL)
+		{
+			vec3 toTarget = m_pTargetEnemy->GetProjectileHitboxCenter() - GetCenter();
+			spellSpawnVelocity = (normalize(toTarget) * powerAmount);
+		}
+
+		Projectile* pProjectile = m_pProjectileManager->CreateProjectile(spellSpawnPosition, spellSpawnVelocity, 0.0f, "media/gamedata/items/Fireball/FireballBlue.item", 0.05f);
+		pProjectile->SetProjectileType(true, false, false);
+		pProjectile->SetOwner(this, NULL, NULL);
+		pProjectile->SetGravityMultiplier(0.0f);
 	}
 	else if (IsShield())
 	{

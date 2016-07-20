@@ -1,13 +1,14 @@
 name: Steve
-level: 1
-experience: 10
-maxExperience: 100
-numStatsPoints: 0
-strength: 7
-dexterity: 4
-intelligence: 1
-vitality: 2
-armor: 1
-luck: 1
+class: 5
+level: 3
+experience: 180
+maxExperience: 300
+numStatsPoints: 6
+strength: 8
+dexterity: 5
+intelligence: 4
+vitality: 6
+armor: 2
+luck: 4
 
 signature: 

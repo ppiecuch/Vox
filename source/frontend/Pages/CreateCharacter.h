@@ -97,6 +97,7 @@ public:
 	void UpdateCustomCounter(int incrementValue);
 	void ClosedVoxelEditor(bool showDefaultsWindow);
 
+	void UpdatePresetsPulldown();
 	void UpdateEyeTexturePulldown();
 	void Update(float dt);
 
@@ -117,6 +118,9 @@ protected:
 	static void _EyesTexturesPulldownChanged(void *pData);
 	void EyesTexturesPulldownChanged();
 
+	static void _PresetsPulldownChanged(void *pData);
+	void PresetsPulldownChanged();
+	
 	static void _ArrowLeftPressed(void *pData);
 	void ArrowLeftPressed();
 
@@ -207,6 +211,7 @@ private:
 	TextBox* m_pNameTextBox;
 	PulldownMenu* m_pEyesTexturesPulldown;
 	Slider* m_pCharacterSizeSlider;
+	PulldownMenu* m_pPresetsPulldown;
 
 	// Preset window
 	GUIWindow* m_pPresetsWindow;

@@ -21,17 +21,17 @@ uniform float diffuseScale;
 
 float readDepth(in vec2 coord)
 {  
-    if (coord.x < 0.0|| coord.y < 0.0)
+	if (coord.x < 0.0|| coord.y < 0.0)
 		return 1.0;
 
-    float posZ = texture2D(depths, coord).x;
+	float posZ = texture2D(depths, coord).x;
 
-    return (1.0) / (nearZ + farZ - posZ * (farZ - nearZ));
+	return (1.0) / (nearZ + farZ - posZ * (farZ - nearZ));
 }  
 
 void main()
 {
-    // Normalize coord
+	// Normalize coord
 	vec2 coord = (gl_FragCoord).xy;
 	coord.x = coord.x / float(screenWidth);
 	coord.y = coord.y / float(screenHeight);

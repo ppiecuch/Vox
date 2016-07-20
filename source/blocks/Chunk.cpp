@@ -21,6 +21,7 @@
 #include "../utils/Random.h"
 #include "../simplex/simplexnoise.h"
 #include "../VoxSettings.h"
+#include "../VoxGame.h"
 #include "../Items/ItemManager.h"
 
 // A chunk cube is double this render size, since we create from - to + for each axis.
@@ -44,6 +45,7 @@ Chunk::~Chunk()
 	Unload();
 
 	delete m_colour;
+	delete m_blockType;
 }
 
 // Player pointer
@@ -112,9 +114,11 @@ void Chunk::Initialize()
 
 	// Blocks data
 	m_colour = new unsigned int[CHUNK_SIZE_CUBED];
+	m_blockType = new BlockType[CHUNK_SIZE_CUBED];
 	for (int i = 0; i < CHUNK_SIZE_CUBED; i++)
 	{
 		m_colour[i] = 0;
+		m_blockType[i] = BlockType_Default;
 	}
 }
 
@@ -177,15 +181,22 @@ void Chunk::Setup()
 			float xPosition = m_position.x + x;
 			float zPosition = m_position.z + z;
 
+			Biome biome = VoxGame::GetInstance()->GetBiomeManager()->GetBiome(vec3(xPosition, 0.0f, zPosition));
+
+			// Get the 
 			float noise = octave_noise_2d(m_pVoxSettings->m_landscapeOctaves, m_pVoxSettings->m_landscapePersistence, m_pVoxSettings->m_landscapeScale, xPosition, zPosition);
 			float noiseNormalized = ((noise + 1.0f) * 0.5f);
+			float noiseHeight = noiseNormalized * CHUNK_SIZE;
 
+			// Multiple by mountain ratio
 			float mountainNoise = octave_noise_2d(m_pVoxSettings->m_mountainOctaves, m_pVoxSettings->m_mountainPersistence, m_pVoxSettings->m_mountainScale, xPosition, zPosition);
 			float mountainNoiseNormalise = (mountainNoise + 1.0f) * 0.5f;
 			float mountainMultiplier = m_pVoxSettings->m_mountainMultiplier * mountainNoiseNormalise;
-
-			float noiseHeight = noiseNormalized * CHUNK_SIZE;
 			noiseHeight *= mountainMultiplier;
+
+			// Smooth out for towns
+			float townMultiplier = VoxGame::GetInstance()->GetBiomeManager()->GetTowMultiplier(vec3(xPosition, 0.0f, zPosition));
+			noiseHeight *= townMultiplier;
 
 			if (m_gridY < 0)
 			{
@@ -216,6 +227,7 @@ void Chunk::Setup()
 						m_pBiomeManager->GetChunkColourAndBlockType(xPosition, yPosition, zPosition, noise, colorNoiseNormalized, &red, &green, &blue, &blockType);
 						
 						SetColour(x, y, z, red, green, blue, alpha);
+						SetBlockType(x, y, z, blockType);
 					}
 				}
 			}
@@ -226,10 +238,40 @@ void Chunk::Setup()
 				// Trees
 				if ((GetRandomNumber(0, 2000) >= 2000))
 				{
-					if (noiseNormalized >= 0.5f)
+					float minTreeHeight = 0.0f;
+					if (biome == Biome_GrassLand)
+					{
+						minTreeHeight = 0.5f;
+					}
+					else if (biome == Biome_Desert)
+					{
+						minTreeHeight = 0.0f;
+					}
+					else if (biome == Biome_AshLand)
+					{
+						minTreeHeight = 0.25f;
+					}
+
+					if (noiseNormalized >= minTreeHeight)
 					{
 						vec3 treePos = vec3(xPosition, noiseHeight, zPosition);
-						m_pChunkManager->ImportQubicleBinary("media/gamedata/terrain/plains/smalltree.qb", treePos, QubicleImportDirection_Normal);
+
+						if (biome == Biome_GrassLand)
+						{
+							m_pChunkManager->ImportQubicleBinary("media/gamedata/terrain/plains/smalltree.qb", treePos, QubicleImportDirection_Normal);
+						}
+						else if (biome == Biome_Desert)
+						{
+							m_pChunkManager->ImportQubicleBinary("media/gamedata/terrain/desert/cactus1.qb", treePos, QubicleImportDirection_Normal);
+						}
+						else if (biome == Biome_Tundra)
+						{
+							m_pChunkManager->ImportQubicleBinary("media/gamedata/terrain/tundra/tundra_tree1.qb", treePos, QubicleImportDirection_Normal);
+						}
+						else if (biome == Biome_AshLand)
+						{
+							m_pChunkManager->ImportQubicleBinary("media/gamedata/terrain/ashlands/ashtree1.qb", treePos, QubicleImportDirection_Normal);
+						}
 					}
 				}
 
@@ -463,7 +505,7 @@ void Chunk::RemoveItems()
 }
 
 // Block colour
-void Chunk::SetColour(int x, int y, int z, float r, float g, float b, float a)
+void Chunk::SetColour(int x, int y, int z, float r, float g, float b, float a, bool setBlockType)
 {
 	if (r > 1.0f) r = 1.0f;
 	if (g > 1.0f) g = 1.0f;
@@ -478,7 +520,7 @@ void Chunk::SetColour(int x, int y, int z, float r, float g, float b, float a)
 	unsigned int red = (int)(r * 255);
 
 	unsigned int colour = red + green + blue + alpha;
-	SetColour(x, y, z, colour);
+	SetColour(x, y, z, colour, setBlockType);
 }
 
 void Chunk::GetColour(int x, int y, int z, float* r, float* g, float* b, float* a)
@@ -498,7 +540,7 @@ void Chunk::GetColour(int x, int y, int z, float* r, float* g, float* b, float* 
 	*a = 1.0f;
 }
 
-void Chunk::SetColour(int x, int y, int z, unsigned int colour)
+void Chunk::SetColour(int x, int y, int z, unsigned int colour, bool setBlockType)
 {
 	if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
 		return;
@@ -511,11 +553,30 @@ void Chunk::SetColour(int x, int y, int z, unsigned int colour)
 	}
 
 	m_colour[x + y * CHUNK_SIZE + z * CHUNK_SIZE_SQUARED] = colour;
+
+	if (setBlockType)
+	{
+		unsigned int blockB = (colour & 0x00FF0000) >> 16;
+		unsigned int blockG = (colour & 0x0000FF00) >> 8;
+		unsigned int blockR = (colour & 0x000000FF);
+		m_blockType[x + y * CHUNK_SIZE + z * CHUNK_SIZE_SQUARED] = m_pChunkManager->SetBlockTypeBasedOnColour(blockR, blockG, blockB);
+	}
 }
 
 unsigned int Chunk::GetColour(int x, int y, int z)
 {
 	return m_colour[x + y * CHUNK_SIZE + z * CHUNK_SIZE_SQUARED];
+}
+
+// Block type
+BlockType Chunk::GetBlockType(int x, int y, int z)
+{
+	return m_blockType[x + y * CHUNK_SIZE + z * CHUNK_SIZE_SQUARED];
+}
+
+void Chunk::SetBlockType(int x, int y, int z, BlockType blockType)
+{
+	m_blockType[x + y * CHUNK_SIZE + z * CHUNK_SIZE_SQUARED] = blockType;
 }
 
 // Flags

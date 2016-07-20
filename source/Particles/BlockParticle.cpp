@@ -99,6 +99,7 @@ void BlockParticle::CreateStartingParams()
 
 void BlockParticle::CalculateWorldTransformMatrix()
 {
+	// Full world positional matrix
 	m_worldMatrix.LoadIdentity();
 	m_worldMatrix.SetRotation(DegToRad(m_rotation.x), DegToRad(m_rotation.y), DegToRad(m_rotation.z));
 
@@ -121,6 +122,31 @@ void BlockParticle::CalculateWorldTransformMatrix()
 	scaleMat.SetScale(vec3(m_currentScale, m_currentScale, m_currentScale));
 
 	m_worldMatrix = scaleMat * m_worldMatrix;
+
+	// --------------------------------------------------------------------------
+
+	// Non-world matrix that doesn't contain the world positional offset, i.e only local to the particle's emitter and effect
+	m_worldMatrix_NoPositionOffset.LoadIdentity();
+	m_worldMatrix_NoPositionOffset.SetRotation(DegToRad(m_rotation.x), DegToRad(m_rotation.y), DegToRad(m_rotation.z));
+
+	pos = m_position_NoWorldOffset;
+	if (m_pParent != NULL && m_pParent->m_particlesFollowEmitter)
+	{
+		// If we have a parent and we are locked to their position
+		pos += m_pParent->m_position;
+
+		if (m_pParent->m_pParent != NULL)
+		{
+			// If our emitter's parent effect has a position offset
+			pos += m_pParent->m_pParent->m_position_NoWorldOffset;
+		}
+	}
+
+	m_worldMatrix_NoPositionOffset.SetTranslation(vec3(pos.x, pos.y, pos.z));
+
+	scaleMat.SetScale(vec3(m_currentScale, m_currentScale, m_currentScale));
+
+	m_worldMatrix_NoPositionOffset = scaleMat * m_worldMatrix_NoPositionOffset;
 }
 
 void BlockParticle::UpdateGridPosition()
@@ -275,10 +301,13 @@ void BlockParticle::Update(float dt)
 		vec3 acceleration = (m_gravityDirection * 9.81f) * m_gravityMultiplier;
 		m_velocity += acceleration * dt;
 		m_position += m_velocity * dt;
+		m_position_NoWorldOffset += m_velocity * dt;
 
 		// Point origin and tangential velocity
 		m_position += m_tangentialVelocity * dt;
 		m_position += m_pointVelocity * dt;
+		m_position_NoWorldOffset += m_tangentialVelocity * dt;
+		m_position_NoWorldOffset += m_pointVelocity * dt;
 
 		// Rotation integration
 		vec3 angularAcceleration(0.0f, 0.0f, 0.0f);

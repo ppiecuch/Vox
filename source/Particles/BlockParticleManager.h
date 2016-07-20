@@ -52,11 +52,11 @@ public:
 	int GetNumBlockParticleEffects();
 	int GetNumBlockParticleEmitters();
 	int GetNumBlockParticles();
-	int GetNumRenderableParticles();
+	int GetNumRenderableParticles(bool noWorldOffset);
 
 	// Creation
 	BlockParticle* CreateBlockParticleFromEmitterParams(BlockParticleEmitter* pEmitter);
-	BlockParticle* CreateBlockParticle(vec3 pos, vec3 gravityDir, float gravityMultiplier, vec3 pointOrigin,
+	BlockParticle* CreateBlockParticle(vec3 pos, vec3 posNoWorldOffset,vec3 gravityDir, float gravityMultiplier, vec3 pointOrigin,
 									   float startScale, float startScaleVariance, float endScale, float endScaleVariance,
 									   float startR, float startG, float startB, float startA,
 									   float startRVariance, float startGVariance, float startBVariance, float startAVariance,
@@ -70,11 +70,11 @@ public:
 									   bool randomStartRotation, vec3 startRotation, bool worldCollision, bool destoryOnCollision, bool startLifeDecayOnCollision,
 									   bool createEmitters, BlockParticleEmitter* pCreatedEmitter);
 	BlockParticleEmitter* CreateBlockParticleEmitter(string name, vec3 pos);
-	BlockParticleEffect* CreateBlockParticleEffect(string name, vec3 pos);
 	
 	BlockParticleEffect* ImportParticleEffect(string fileName, vec3 pos, unsigned int* particleEffectId);
 	void DestroyParticleEffect(unsigned int particleEffectId);
-	void UpdateParticleEffectPosition(unsigned int particleEffectId, vec3 position);
+	void UpdateParticleEffectPosition(unsigned int particleEffectId, vec3 position, vec3 position_noWorldOffset);
+	void SetRenderNoWoldOffsetViewport(unsigned int particleEffectId, bool renderNoWoldOffsetViewport);
 
 	void ExplodeQubicleBinary(QubicleBinary* pQubicleBinary, float scale, int particleSpawnChance);
 	void ExplodeQubicleMatrix(QubicleMatrix* pMatrix, float scale, int particleSpawnChance, bool allSameColour, float sameR, float sameG, float sameB, float sameA);
@@ -87,10 +87,10 @@ public:
 	void Update(float dt);
 
 	// Rendering
-	void Render();
-	void RenderInstanced();
-	void RenderDefault();
-	void RenderBlockParticle(BlockParticle* pBlockParticle);
+	void Render(bool noWorldOffset);
+	void RenderInstanced(bool noWorldOffset);
+	void RenderDefault(bool noWorldOffset);
+	void RenderBlockParticle(BlockParticle* pBlockParticle, bool noWorldOffset);
 	void RenderDebug();
 	void RenderEmitters();
 	void RenderEffects();

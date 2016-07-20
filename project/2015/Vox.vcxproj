@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\source\AudioManager\AudioManager.cpp" />
+    <ClCompile Include="..\..\source\AudioManager\SoundEffects.cpp" />
     <ClCompile Include="..\..\source\blocks\BiomeManager.cpp" />
     <ClCompile Include="..\..\source\blocks\Chunk.cpp" />
     <ClCompile Include="..\..\source\blocks\ChunkManager.cpp" />
@@ -29,6 +31,7 @@
     <ClCompile Include="..\..\source\frontend\FrontendManager.cpp" />
     <ClCompile Include="..\..\source\frontend\FrontendPage.cpp" />
     <ClCompile Include="..\..\source\frontend\Pages\CreateCharacter.cpp" />
+    <ClCompile Include="..\..\source\frontend\Pages\Credits.cpp" />
     <ClCompile Include="..\..\source\frontend\Pages\MainMenu.cpp" />
     <ClCompile Include="..\..\source\frontend\Pages\ModMenu.cpp" />
     <ClCompile Include="..\..\source\frontend\Pages\OptionsMenu.cpp" />
@@ -90,10 +93,14 @@
     <ClCompile Include="..\..\source\ini\INIReader.cpp" />
     <ClCompile Include="..\..\source\Instance\InstanceManager.cpp" />
     <ClCompile Include="..\..\source\Inventory\InventoryManager.cpp" />
+    <ClCompile Include="..\..\source\Items\EquipmentUtils.cpp" />
     <ClCompile Include="..\..\source\Items\Item.cpp" />
     <ClCompile Include="..\..\source\Items\ItemManager.cpp" />
+    <ClCompile Include="..\..\source\Items\ItemSpawner.cpp" />
     <ClCompile Include="..\..\source\Items\ItemUtils.cpp" />
+    <ClCompile Include="..\..\source\Items\RandomLootManager.cpp" />
     <ClCompile Include="..\..\source\Items\StatAttribute.cpp" />
+    <ClCompile Include="..\..\source\libnoise\noiseutils.cpp" />
     <ClCompile Include="..\..\source\Lighting\DynamicLight.cpp" />
     <ClCompile Include="..\..\source\Lighting\LightingManager.cpp" />
     <ClCompile Include="..\..\source\lua\lapi.c" />
@@ -190,6 +197,8 @@
     <ClCompile Include="..\..\source\VoxWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\source\AudioManager\AudioManager.h" />
+    <ClInclude Include="..\..\source\AudioManager\SoundEffectsEnum.h" />
     <ClInclude Include="..\..\source\blocks\BiomeManager.h" />
     <ClInclude Include="..\..\source\blocks\BlocksEnum.h" />
     <ClInclude Include="..\..\source\blocks\Chunk.h" />
@@ -202,6 +211,7 @@
     <ClInclude Include="..\..\source\frontend\FrontendPage.h" />
     <ClInclude Include="..\..\source\frontend\FrontendScreens.h" />
     <ClInclude Include="..\..\source\frontend\Pages\CreateCharacter.h" />
+    <ClInclude Include="..\..\source\frontend\Pages\Credits.h" />
     <ClInclude Include="..\..\source\frontend\Pages\MainMenu.h" />
     <ClInclude Include="..\..\source\frontend\Pages\ModMenu.h" />
     <ClInclude Include="..\..\source\frontend\Pages\OptionsMenu.h" />
@@ -405,10 +415,14 @@
     <ClInclude Include="..\..\source\ini\INIReader.h" />
     <ClInclude Include="..\..\source\Instance\InstanceManager.h" />
     <ClInclude Include="..\..\source\Inventory\InventoryManager.h" />
+    <ClInclude Include="..\..\source\Items\EquipmentEnum.h" />
     <ClInclude Include="..\..\source\Items\Item.h" />
     <ClInclude Include="..\..\source\Items\ItemManager.h" />
     <ClInclude Include="..\..\source\Items\ItemsEnum.h" />
+    <ClInclude Include="..\..\source\Items\ItemSpawner.h" />
+    <ClInclude Include="..\..\source\Items\RandomLootManager.h" />
     <ClInclude Include="..\..\source\Items\StatAttribute.h" />
+    <ClInclude Include="..\..\source\libnoise\noiseutils.h" />
     <ClInclude Include="..\..\source\Lighting\DynamicLight.h" />
     <ClInclude Include="..\..\source\Lighting\LightingManager.h" />
     <ClInclude Include="..\..\source\lua\lapi.h" />
@@ -458,6 +472,7 @@
     <ClInclude Include="..\..\source\Particles\BlockParticleEmitter.h" />
     <ClInclude Include="..\..\source\Particles\BlockParticleManager.h" />
     <ClInclude Include="..\..\source\Player\Player.h" />
+    <ClInclude Include="..\..\source\Player\PlayerClass.h" />
     <ClInclude Include="..\..\source\Player\PlayerStats.h" />
     <ClInclude Include="..\..\source\Projectile\Projectile.h" />
     <ClInclude Include="..\..\source\Projectile\ProjectileManager.h" />
@@ -700,13 +715,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene;..\..\source\libnoise</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\..\source\glfw\libs\2015\d\glfw3.lib;..\..\source\freetype\libs\2015\freetype261d.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\source\glfw\libs\2015\d\glfw3.lib;..\..\source\freetype\libs\2015\freetype261d.lib;..\..\source\libnoise\libs\2015\noise_d.lib;..\..\source\AudioManager\fmod\libs\fmod_vc.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
       <SubSystem>Console</SubSystem>
@@ -717,13 +732,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene;..\..\source\libnoise</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\..\source\glfw\libs\2015\d\glfw3_64.lib;..\..\source\freetype\libs\2015\freetype261d_64.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\source\glfw\libs\2015\d\glfw3_64.lib;..\..\source\freetype\libs\2015\freetype261d_64.lib;..\..\source\libnoise\libs\2015\noise64_d.lib;..\..\source\AudioManager\fmod\libs\fmod64_vc.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
       <SubSystem>Console</SubSystem>
@@ -736,14 +751,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene;..\..\source\libnoise</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\..\source\glfw\libs\2015\r\glfw3.lib;..\..\source\freetype\libs\2015\freetype261.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\source\glfw\libs\2015\r\glfw3.lib;..\..\source\freetype\libs\2015\freetype261.lib;..\..\source\libnoise\libs\2015\noise.lib;..\..\source\AudioManager\fmod\libs\fmod_vc.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <AdditionalOptions>
       </AdditionalOptions>
@@ -756,14 +771,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\source;..\..\source\glfw\include;..\..\source\glew\include;..\..\source\freetype\include;..\..\source\lua;..\..\source\selene;..\..\source\libnoise</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\..\source\glfw\libs\2015\r\glfw3_64.lib;..\..\source\freetype\libs\2015\freetype261_64.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\source\glfw\libs\2015\r\glfw3_64.lib;..\..\source\freetype\libs\2015\freetype261_64.lib;..\..\source\libnoise\libs\2015\noise64.lib;..\..\source\AudioManager\fmod\libs\fmod64_vc.lib;opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

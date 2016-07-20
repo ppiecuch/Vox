@@ -16,6 +16,7 @@
 #pragma once
 
 #include "../Renderer/Renderer.h"
+#include "../blocks/BiomeManager.h"
 
 
 class Skybox
@@ -30,6 +31,8 @@ public:
 
 	unsigned int GetCubeMapTexture1();
 	unsigned int GetCubeMapTexture2();
+
+	void SetCurrentBiome(Biome currentBiome);
 
 	void Render();
 
@@ -54,4 +57,6 @@ private:
 
 	string m_skyBox1Name;
 	string m_skyBox2Name;
+
+	string m_skyBoxNames[BiomeType_NumBiomes];
 };

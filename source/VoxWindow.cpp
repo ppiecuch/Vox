@@ -1,7 +1,7 @@
 // ******************************************************************************
-// Filename:	VoxWindow.cpp
-// Project:	Vox
-// Author:	Steven Ball
+// Filename:    VoxWindow.cpp
+// Project:     Vox
+// Author:      Steven Ball
 // 
 // Revision History:
 //   Initial Revision - 27/10/15
@@ -197,29 +197,36 @@ void VoxWindow::SetCursorPosition(int x, int y)
 	glfwSetCursorPos(m_pWindow, x, y);
 }
 
-void VoxWindow::TurnCursorOff()
+void VoxWindow::TurnCursorOff(bool forceOff)
 {
 	if (IsCursorOn() == true)
 	{
-		glfwSetInputMode(m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		m_cursorOldX = m_cursorX;
-		m_cursorOldY = m_cursorY;
-
-		// Signal to the GUI that we have turned off the cursor, reset buttons states, cursor pos, etc
-		m_pVoxGame->GUITurnOffCursor();
+		if (m_pVoxSettings->m_customCursors == false || forceOff)
+		{
+			glfwSetInputMode(m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
 	}
+
+	m_cursorOldX = m_cursorX;
+	m_cursorOldY = m_cursorY;
+
+	// Signal to the GUI that we have turned off the cursor, reset buttons states, cursor pos, etc
+	m_pVoxGame->GUITurnOffCursor();
 }
 
-void VoxWindow::TurnCursorOn(bool resetCursorPosition)
+void VoxWindow::TurnCursorOn(bool resetCursorPosition, bool forceOn)
 {
 	if (IsCursorOn() == false)
 	{
-		glfwSetInputMode(m_pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-		if (resetCursorPosition)
+		if (m_pVoxSettings->m_customCursors == false || forceOn)
 		{
-			SetCursorPosition(m_cursorOldX, m_cursorOldY);
+			glfwSetInputMode(m_pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
+	}
+
+	if (resetCursorPosition)
+	{
+		SetCursorPosition(m_cursorOldX, m_cursorOldY);
 	}
 }
 

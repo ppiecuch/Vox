@@ -61,29 +61,23 @@ CreateCharacter::CreateCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pBackButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "Back", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pBackButton->SetLabelOffset(0, 3);
 	m_pBackButton->SetPressedOffset(0, -4);
-	//m_pBackButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pBackButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pBackButton->SetCallBackFunction(_BackPressed);
 	m_pBackButton->SetCallBackData(this);
 
 	m_pNextButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Next", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pNextButton->SetLabelOffset(0, 5);
 	m_pNextButton->SetPressedOffset(0, -4);
-	//m_pNextButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pNextButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pNextButton->SetCallBackFunction(_SelectPressed);
 	m_pNextButton->SetCallBackData(this);
 
 	m_pCreateButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_50(), m_pFrontendManager->GetFrontendFont_50_Outline(), "Create", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pCreateButton->SetLabelOffset(0, 5);
 	m_pCreateButton->SetPressedOffset(0, -4);
-	//m_pCreateButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pCreateButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pCreateButton->SetCallBackFunction(_CreatePressed);
 	m_pCreateButton->SetCallBackData(this);
 
 	// Presets window
-	m_pPresetsWindow = new GUIWindow(m_pRenderer, m_pFrontendManager->GetFrontendFont_Medium(), "Presets");
+	m_pPresetsWindow = new GUIWindow(m_pRenderer, m_pFrontendManager->GetFrontendFont_Medium(), "Preset");
 	m_pPresetsWindow->AllowMoving(true);
 	m_pPresetsWindow->AllowClosing(false);
 	m_pPresetsWindow->AllowMinimizing(false);
@@ -154,8 +148,6 @@ CreateCharacter::CreateCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pCreateCustomPresetButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_30(), m_pFrontendManager->GetFrontendFont_30_Outline(), "", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pCreateCustomPresetButton->SetLabelOffset(0, 3);
 	m_pCreateCustomPresetButton->SetPressedOffset(0, -4);
-	//m_pCreateCustomPresetButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pCreateCustomPresetButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pCreateCustomPresetButton->SetCallBackFunction(_CreateCustomPressed);
 	m_pCreateCustomPresetButton->SetCallBackData(this);
 	m_pCreateCustomPresetButton->SetDepth(3.0f);
@@ -200,6 +192,13 @@ CreateCharacter::CreateCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pEyesTexturesPulldown->SetMenuItemChangedCallBackFunction(_EyesTexturesPulldownChanged);
 	m_pEyesTexturesPulldown->SetMenuItemChangedCallBackData(this);
 
+	m_pPresetsPulldown = new PulldownMenu(m_pRenderer, m_pFrontendManager->GetFrontendFont_25(), m_pFrontendManager->GetFrontendFont_25_Outline(), "Presets", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
+	m_pPresetsPulldown->SetDepth(3.0f);
+	m_pPresetsPulldown->SetMaxNumItemsDisplayed(5);
+	m_pPresetsPulldown->SetRenderHeader(true);
+	m_pPresetsPulldown->SetMenuItemChangedCallBackFunction(_PresetsPulldownChanged);
+	m_pPresetsPulldown->SetMenuItemChangedCallBackData(this);
+
 	m_pCustomizeWindow->SetBackgroundIcon(m_pCustomizeWindowBackgroundIcon);
 	m_pCustomizeWindow->SetTitlebarBackgroundIcon(m_pCustomizeTitleBarBackgroundIcon);
 
@@ -207,6 +206,7 @@ CreateCharacter::CreateCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pCustomizeWindow->AddComponent(m_pNameTextBox);
 	m_pCustomizeWindow->AddComponent(m_pCharacterSizeSlider);
 	m_pCustomizeWindow->AddComponent(m_pEyesTexturesPulldown);
+	m_pCustomizeWindow->AddComponent(m_pPresetsPulldown);
 
 	// Scale window
 	m_pScaleWindow = new GUIWindow(m_pRenderer, m_pFrontendManager->GetFrontendFont_Medium(), "Scale");
@@ -310,8 +310,6 @@ CreateCharacter::CreateCharacter(Renderer* pRenderer, OpenGLGUI* pGUI, FrontendM
 	m_pSaveDefaultsButton = new Button(m_pRenderer, m_pFrontendManager->GetFrontendFont_25(), m_pFrontendManager->GetFrontendFont_25_Outline(), "", Colour(1.0f, 1.0f, 1.0f, 1.0f), Colour(0.0f, 0.0f, 0.0f, 1.0f));
 	m_pSaveDefaultsButton->SetLabelOffset(0, 5);
 	m_pSaveDefaultsButton->SetPressedOffset(0, -4);
-	//m_pSaveDefaultsButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
-	//m_pSaveDefaultsButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 	m_pSaveDefaultsButton->SetCallBackFunction(_SaveDefaultsPressed);
 	m_pSaveDefaultsButton->SetCallBackData(this);
 
@@ -358,6 +356,7 @@ CreateCharacter::~CreateCharacter()
 	delete m_pNameTextBox;
 	delete m_pEyesTexturesPulldown;
 	delete m_pCharacterSizeSlider;
+	delete m_pPresetsPulldown;
 
 	delete m_pPresetsWindow;
 	delete m_pPresetTitleBarIcon;
@@ -425,7 +424,7 @@ void CreateCharacter::SetWindowDimensions(int windowWidth, int windowHeight)
 	m_presetsWindowWidth = 350;
 	m_presetsWindowHeight = 225;
 	m_customizeWindowWidth = 350;
-	m_customizeWindowHeight = 150;
+	m_customizeWindowHeight = 190;
 	m_scaleWindowWidth = 350;
 	m_scaleWindowHeight = 125;
 	m_defaultsWindowWidth = 350;
@@ -444,11 +443,12 @@ void CreateCharacter::SetWindowDimensions(int windowWidth, int windowHeight)
 
 	m_pCustomizeTitleBarIcon->SetDimensions(0, m_customizeWindowHeight, 44, 44);
 
-	m_pNameTextBox->SetDimensions(75, 100, 250, 30);
-	m_pCharacterSizeSlider->SetDimensions(75, 65, 200, 24);
-	m_pEyesTexturesPulldown->SetDimensions(70, 25, 130, 24);
+	m_pNameTextBox->SetDimensions(75, 140, 250, 30);
+	m_pCharacterSizeSlider->SetDimensions(75, 105, 200, 24);
+	m_pEyesTexturesPulldown->SetDimensions(70, 65, 130, 24);
+	m_pPresetsPulldown->SetDimensions(70, 25, 180, 24);
 
-	m_pPresetsWindow->SetDimensions((int)((m_windowWidth*0.825f) - (m_presetsWindowWidth*0.5f)), (int)((m_windowHeight*0.535f) - (m_presetsWindowHeight*0.5f)), m_presetsWindowWidth, m_presetsWindowHeight);
+	m_pPresetsWindow->SetDimensions((int)((m_windowWidth*0.825f) - (m_presetsWindowWidth*0.5f)), (int)((m_windowHeight*0.5f) - (m_presetsWindowHeight*0.5f)), m_presetsWindowWidth, m_presetsWindowHeight);
 	m_pPresetsWindow->SetTitleBarDimensions(0, 0, m_titlebarWidth, m_titlebarHeight);
 	m_pPresetsWindow->SetTitleOffset(50, 5);
 	m_pPresetsWindow->SetApplicationDimensions(m_windowWidth, m_windowHeight);
@@ -458,7 +458,7 @@ void CreateCharacter::SetWindowDimensions(int windowWidth, int windowHeight)
 
 	m_pCreateCustomPresetButton->SetDimensions(0, 0, 64, 64);
 
-	m_pScaleWindow->SetDimensions((int)((m_windowWidth*0.825f) - (m_scaleWindowWidth*0.5f)), (int)((m_windowHeight*0.275f) - (m_scaleWindowHeight*0.5f)), m_scaleWindowWidth, m_scaleWindowHeight);
+	m_pScaleWindow->SetDimensions((int)((m_windowWidth*0.825f) - (m_scaleWindowWidth*0.5f)), (int)((m_windowHeight*0.25f) - (m_scaleWindowHeight*0.5f)), m_scaleWindowWidth, m_scaleWindowHeight);
 	m_pScaleWindow->SetTitleBarDimensions(0, 0, m_titlebarWidth, m_titlebarHeight);
 	m_pScaleWindow->SetTitleOffset(50, 5);
 	m_pScaleWindow->SetApplicationDimensions(m_windowWidth, m_windowHeight);
@@ -623,6 +623,28 @@ void CreateCharacter::SkinGUI()
 
 	m_pFrontendManager->SetScrollbarIcons(m_pPresetScrollbar);
 	m_pFrontendManager->SetPulldownMenuIcons(m_pEyesTexturesPulldown);
+	m_pFrontendManager->SetPulldownMenuIcons(m_pPresetsPulldown);
+
+	m_pFrontendManager->SetSliderIcons(m_pCharacterSizeSlider);
+	m_pFrontendManager->SetSliderIcons(m_pPresetScaleSlider);
+	m_pFrontendManager->SetSliderIcons(m_pEyesSizeSlider);
+	m_pFrontendManager->SetSliderIcons(m_pMouthSizeSlider);
+	m_pFrontendManager->SetSliderIcons(m_pXOffsetSlider);
+	m_pFrontendManager->SetSliderIcons(m_pYOffsetSlider);
+	m_pFrontendManager->SetSliderIcons(m_pZOffsetSlider);
+
+	m_pNextButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pNextButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pNextButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pCreateButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCreateButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pBackButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pBackButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
+	m_pCreateCustomPresetButton->SetNormalLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCustomPresetButton->SetHoverLabelColour(m_pFrontendManager->GetHoverFontColour());
+	m_pCreateCustomPresetButton->SetPressedLabelColour(m_pFrontendManager->GetPressedFontColour());
 }
 
 void CreateCharacter::UnSkinGUI()
@@ -632,10 +654,10 @@ void CreateCharacter::UnSkinGUI()
 // Loading
 void CreateCharacter::Load()
 {
-	//m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	m_defaultEyeWidth = 9.0f;
 	m_defaultMouthWidth = 9.0f;
@@ -652,7 +674,11 @@ void CreateCharacter::Load()
 
 	LoadSelectionCharacters();
 
-	Item* pCampFire = VoxGame::GetInstance()->GetItemManager()->CreateItem(vec3(0.0f, 8.0f, 3.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 45.0f, 0.0f), "media/gamedata/items/CampFire/CampFire.item", eItem_CampFire, "CreateScreen Camp Fire", true, false, 0.06f);
+	Item* pCampFire = VoxGame::GetInstance()->GetItemManager()->CreateItem(vec3(25.0f, 0.5f, 3.5f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 45.0f, 0.0f), "media/gamedata/items/CampFire/CampFire.item", eItem_CampFire, "CreateScreen Camp Fire", true, false, 0.06f);
+	if (pCampFire != NULL)
+	{
+		pCampFire->SetCreateDyingLights(false);
+	}
 
 	m_pHoverCreatioNPC = NULL;
 	m_pSelectedNPC = NULL;
@@ -780,61 +806,67 @@ bool CreateCharacter::LoadDefaultSettings(string defaultFile, PresetSection m_se
 
 void CreateCharacter::LoadSelectionCharacters()
 {
-	vec3 centralLookPoint = vec3(0.0f, 8.0f, 5.0f);
+	vec3 centralLookPoint = vec3(25.0f, 1.0f, 5.0f);
 	
-	NPC* pCharacter1 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character1", "Human", "Priest", vec3(4.0f, 7.51f, 1.5f), 0.08f, false, true);
+	NPC* pCharacter1 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character1", "Human", "Priest", vec3(29.0f, 0.51f, 1.5f), 0.08f, false, true);
 	pCharacter1->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter1->SetBodyTurnStopThreshold(0.01f);
 	pCharacter1->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter1->SetPushingCollisionEnabled(false);
-	NPC* pCharacter2 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character2", "Human", "Knight", vec3(2.5f, 7.51f, 0.5f), 0.08f, false, true);
+	pCharacter1->SetFrontEndNPC(true);
+	pCharacter1->SetPlayerClass(PlayerClass_Priest);
+	NPC* pCharacter2 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character2", "Human", "Knight", vec3(27.5f, 0.51f, 0.5f), 0.08f, false, true);
 	pCharacter2->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter2->SetBodyTurnStopThreshold(0.01f);
 	pCharacter2->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter2->SetPushingCollisionEnabled(false);
-	NPC* pCharacter3 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character3", "Human", "Necromancer", vec3(1.0f, 7.51f, -0.5f), 0.08f, false, true);
+	pCharacter2->SetFrontEndNPC(true);
+	pCharacter2->SetPlayerClass(PlayerClass_Knight);
+	NPC* pCharacter3 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character3", "Human", "Warrior", vec3(26.0f, 0.51f, -0.5f), 0.08f, false, true);
 	pCharacter3->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter3->SetBodyTurnStopThreshold(0.01f);
 	pCharacter3->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter3->SetPushingCollisionEnabled(false);
-	NPC* pCharacter4 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character4", "Human", "Ranger", vec3(-1.0f, 7.51f, -0.5f), 0.08f, false, true);
+	pCharacter3->SetFrontEndNPC(true);
+	pCharacter3->SetPlayerClass(PlayerClass_Warrior);
+	NPC* pCharacter4 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character4", "Human", "Ranger", vec3(24.0f, 0.51f, -0.5f), 0.08f, false, true);
 	pCharacter4->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter4->SetBodyTurnStopThreshold(0.01f);
 	pCharacter4->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter4->SetPushingCollisionEnabled(false);
-	NPC* pCharacter5 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character5", "Human", "Mage", vec3(-2.5f, 7.51f, 0.5f), 0.08f, false, true);
+	pCharacter4->SetFrontEndNPC(true);
+	pCharacter4->SetPlayerClass(PlayerClass_Ranger);
+	NPC* pCharacter5 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character5", "Human", "Mage", vec3(22.5f, 0.51f, 0.5f), 0.08f, false, true);
 	pCharacter5->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter5->SetBodyTurnStopThreshold(0.01f);
 	pCharacter5->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter5->SetPushingCollisionEnabled(false);
-	NPC* pCharacter6 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character6", "Human", "Warrior", vec3(-4.0f, 7.51f, 1.5f), 0.08f, false, true);
+	pCharacter5->SetFrontEndNPC(true);
+	pCharacter5->SetPlayerClass(PlayerClass_Mage);
+	NPC* pCharacter6 = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("Character6", "Human", "Necromancer", vec3(21.0f, 0.51f, 1.5f), 0.08f, false, true);
 	pCharacter6->SetTargetForwardToLookAtPoint(centralLookPoint);
 	pCharacter6->SetBodyTurnStopThreshold(0.01f);
 	pCharacter6->SetBodyTurnSpeedMultiplier(6.0f);
 	pCharacter6->SetPushingCollisionEnabled(false);
-
-	pCharacter1->LoadWeapon(false, "media/gamedata/weapons/PriestStaff/PriestStaff.weapon");
-	pCharacter1->SetNPCCombatType(eNPCCombatType_Staff, false);
-	pCharacter1->SetFrontEndNPC(true);
-
-	pCharacter2->LoadWeapon(true, "media/gamedata/weapons/Shield/Shield.weapon");
-	pCharacter2->LoadWeapon(false, "media/gamedata/weapons/2HandedSword/2HandedSword.weapon");
-	pCharacter2->SetNPCCombatType(eNPCCombatType_MeleeSword, false);
-	pCharacter2->SetFrontEndNPC(true);
-
-	pCharacter3->LoadWeapon(false, "media/gamedata/weapons/FloatingSkull/FloatingSkull.weapon");
-	pCharacter3->SetNPCCombatType(eNPCCombatType_Staff, false);
-	pCharacter3->SetFrontEndNPC(true);
-
-	pCharacter4->LoadWeapon(true, "media/gamedata/weapons/Bow/Bow.weapon");
-	pCharacter4->SetNPCCombatType(eNPCCombatType_Archer, true);
-	pCharacter4->SetFrontEndNPC(true);
-
-	pCharacter5->LoadWeapon(false, "media/gamedata/weapons/Staff/Staff.weapon");
-	pCharacter5->SetNPCCombatType(eNPCCombatType_Staff, false);
-	pCharacter5->SetFrontEndNPC(true);
-
 	pCharacter6->SetFrontEndNPC(true);
+	pCharacter6->SetPlayerClass(PlayerClass_Necromaner);
+
+	pCharacter1->LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_PriestStaff));
+	pCharacter1->SetNPCCombatType(eNPCCombatType_Staff, false);
+
+	pCharacter2->LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_IronSword));
+	pCharacter2->LoadWeapon(true, GetEquipmentFilenameForType(eEquipment_IronShield));
+	pCharacter2->SetNPCCombatType(eNPCCombatType_MeleeSword, false);
+
+	pCharacter4->LoadWeapon(true, GetEquipmentFilenameForType(eEquipment_WoodenBow));
+	pCharacter4->SetNPCCombatType(eNPCCombatType_Archer, true);
+
+	pCharacter5->LoadWeapon(false, GetEquipmentFilenameForType(eEquipment_MageStaff));
+	pCharacter5->SetNPCCombatType(eNPCCombatType_Staff, false);
+
+	pCharacter6->LoadWeapon(false, "media/gamedata/weapons/FloatingSkull/FloatingSkull.weapon");
+	pCharacter6->SetNPCCombatType(eNPCCombatType_Staff, false);
+
 
 	// Hack to make sure NPCs return to exact spots - radius distance checking is smaller
 	pCharacter1->SetAttackRadius(-pCharacter1->GetRadius());
@@ -864,10 +896,10 @@ void CreateCharacter::SetHoverNPC(NPC* pHoverNPC)
 
 void CreateCharacter::SetSelectedNPC(NPC* pSelectedNPC)
 {
-	//m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	if(m_creatingCustom)
 	{
@@ -876,7 +908,7 @@ void CreateCharacter::SetSelectedNPC(NPC* pSelectedNPC)
 	{
 		if(m_pSelectedNPC != pSelectedNPC)
 		{
-			vec3 centralPoint = vec3(0.0f, 8.0f, 3.0f);
+			vec3 centralPoint = vec3(25.0f, 1.0f, 3.0f);
 
 			if(m_pSelectedNPC != NULL)
 			{
@@ -895,7 +927,7 @@ void CreateCharacter::SetSelectedNPC(NPC* pSelectedNPC)
 					toCentralPoint.y = 0.0f;
 					m_pSelectedNPC->SetTargetPosition(m_pSelectedNPC->GetCenter() + toCentralPoint*0.4f);
 					m_pSelectedNPC->SetMoveBackToPosition(m_pSelectedNPC->GetCenter() + toCentralPoint*0.4f);
-					m_pSelectedNPC->SetLookAtPositionWhenReachedTarget(true, vec3(m_cameraPosition.x, 8.0f, m_cameraPosition.z));
+					m_pSelectedNPC->SetLookAtPositionWhenReachedTarget(true, vec3(m_cameraPosition.x, 1.0f, m_cameraPosition.z));
 
 					vec2 screenPos = m_pSelectedNPC->GetScreenPosition();
 					screenPos.y -= 250;
@@ -1114,6 +1146,8 @@ void CreateCharacter::CreatePresetButtons(PresetSection presetSection, bool show
 
 void CreateCharacter::DeletePresetButtons()
 {
+	m_selectedPresetSection = PresetSection_None;
+
 	m_pPresetScrollbar->ClearScrollAreaItems();
 	for(unsigned int i = 0; i < m_vpPresetButtons.size(); i++)
 	{
@@ -1334,19 +1368,50 @@ void CreateCharacter::UpdateEyeTexturePulldown()
 	m_pEyesTexturesPulldown->AddEventListeners();
 }
 
+void CreateCharacter::UpdatePresetsPulldown()
+{
+	m_pPresetsPulldown->RemoveAllPullDownMenuItems();
+	m_pPresetsPulldown->ResetPullDownMenu();
+	m_pCustomizeWindow->RemoveComponent(m_pPresetsPulldown);
+
+	char importDirectory[128];
+	sprintf(importDirectory, "media/gamedata/models/createcharacter/presets/full_presets/*.*");
+
+	vector<string> listFiles;
+	listFiles = listFilesInDirectory(importDirectory);
+	for (unsigned int i = 0; i < listFiles.size(); i++)
+	{
+		if (strcmp(listFiles[i].c_str(), ".") == 0 || strcmp(listFiles[i].c_str(), "..") == 0)
+		{
+			continue;
+		}
+
+		if (listFiles[i].find(".qb") != string::npos)
+		{
+			int lastindex = (int)(listFiles[i].find_last_of("."));
+			string fileWithoutExtension = listFiles[i].substr(0, lastindex);
+
+			m_pPresetsPulldown->AddPulldownItem(fileWithoutExtension.c_str());
+		}
+	}
+
+	m_pCustomizeWindow->AddComponent(m_pPresetsPulldown);
+	m_pPresetsPulldown->AddEventListeners();
+}
+
 void CreateCharacter::Update(float dt)
 {
 	FrontendPage::Update(dt);
 
 	if(m_creatingCustom)
 	{
-		m_cameraPosition = vec3(0.0f, 9.65f, 1.5f);
-		m_cameraView = vec3(0.0f, 8.9f, -2.0f);
+		m_cameraPosition = vec3(25.0f, 2.65f, 1.5f);
+		m_cameraView = vec3(25.0f, 1.9f, -2.0f);
 	}
 	else
 	{
-		m_cameraPosition = vec3(0.0f, 9.75f, 8.0f);
-		m_cameraView = vec3(0.0f, 9.0f, 0.0f);
+		m_cameraPosition = vec3(25.0f, 2.75f, 8.0f);
+		m_cameraView = vec3(25.0f, 2.0f, 0.0f);
 	}
 
 	for(unsigned int i = 0; i < m_vpCharacterLineUp.size(); i++)
@@ -1563,10 +1628,10 @@ void CreateCharacter::_SelectPressed(void *apData)
 
 void CreateCharacter::SelectPressed()
 {
-	//m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	if(m_creatingCustom)
 	{
@@ -1599,8 +1664,9 @@ void CreateCharacter::SelectPressed()
 		shouldUpdatePresetWindowAfterDelete = false;
 
 		// Create a new NPC based on the selected template for custom character modifications
-		m_pCustomCreationNPC = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("CustomCreationCharacter", m_pSelectedNPC->GetType().c_str(), m_pSelectedNPC->GetModelName().c_str(), vec3(-1.0f, 7.5f, -2.0f), 0.08f, false, false);
+		m_pCustomCreationNPC = VoxGame::GetInstance()->GetNPCManager()->CreateNPC("CustomCreationCharacter", m_pSelectedNPC->GetType().c_str(), m_pSelectedNPC->GetModelName().c_str(), vec3(24.0f, 0.5f, -2.0f), 0.08f, false, false);
 		m_pCustomCreationNPC->SetFrontEndNPC(true);
+		m_pCustomCreationNPC->SetPlayerClass(m_pSelectedNPC->GetPlayerClass());
 		//m_pCustomCreationNPC->GetVoxelCharacter()->PlayFacialExpression("Angry");
 		//m_pCustomCreationNPC->GetVoxelCharacter()->SetRandomLookDirection(false);
 
@@ -1671,6 +1737,7 @@ void CreateCharacter::SelectPressed()
 		SetTitleAndSubtitle("CREATE CHARACTER", "Customize your adventurer.");
 
 		UpdateEyeTexturePulldown();
+		UpdatePresetsPulldown();
 
 		m_pCustomizeWindow->Show();
 	}
@@ -1713,11 +1780,12 @@ void CreateCharacter::CreatePressed()
 			{
 				m_pCustomCreationNPC->GetVoxelCharacter()->SaveVoxelCharacter(qbFilename, facesFilename, characterFilename);
 
-				VoxGame::GetInstance()->GetNPCManager()->DeleteNPC(m_pCustomCreationNPC->GetName());
-
 				// Load default inventory and stats and save out files for the character
 				VoxGame::GetInstance()->GetPlayer()->SetName(m_pNameTextBox->GetText().c_str());
-				VoxGame::GetInstance()->GetPlayer()->LoadDefaultCharacterSettings();
+				VoxGame::GetInstance()->GetPlayer()->SetClass(m_pCustomCreationNPC->GetPlayerClass());
+				VoxGame::GetInstance()->GetPlayer()->LoadCharacterSettings();
+
+				VoxGame::GetInstance()->GetNPCManager()->DeleteNPC(m_pCustomCreationNPC->GetName());
 
 				m_pCustomCreationNPC = NULL;
 			}
@@ -1735,10 +1803,10 @@ void CreateCharacter::_BackPressed(void *apData)
 
 void CreateCharacter::BackPressed()
 {
-	//m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
-	//m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pNextButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pBackButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
+	m_pCreateCustomPresetButton->SetLabelColour(m_pFrontendManager->GetNormalFontColour());
 
 	if(m_creatingCustom)
 	{
@@ -1789,6 +1857,59 @@ void CreateCharacter::EyesTexturesPulldownChanged()
 			m_pCustomCreationNPC->GetVoxelCharacter()->ModifyEyesTextures("media/gamedata/models", "Human", pEyesTexture->GetLabel().GetText().c_str());
 		}
 	}
+}
+
+void CreateCharacter::_PresetsPulldownChanged(void *pData)
+{
+	CreateCharacter* lpCreateCharacter = (CreateCharacter*)pData;
+	lpCreateCharacter->PresetsPulldownChanged();
+}
+
+void CreateCharacter::PresetsPulldownChanged()
+{
+	if (m_pCustomCreationNPC != NULL)
+	{
+		MenuItem* pPreset = m_pPresetsPulldown->GetSelectedMenuItem();
+		if (pPreset != NULL)
+		{
+			char characterBaseFolder[128];
+			char presetModelFilename[256];
+			char ms3dFilename[128];
+			char animListFilename[128];
+			char facesFilename[128];
+			char characterFilename[128];
+
+			sprintf(characterBaseFolder, "media/gamedata/models");
+			sprintf(ms3dFilename, "media/gamedata/models/Human/Human.ms3d");
+			sprintf(animListFilename, "media/gamedata/models/Human/Human.animlist");
+			sprintf(facesFilename, "media/gamedata/models/Human/%s.faces", pPreset->GetLabel().GetText().c_str());
+			sprintf(characterFilename, "media/gamedata/models/createcharacter/presets/full_presets/%s.character", pPreset->GetLabel().GetText().c_str());
+			sprintf(presetModelFilename, "media/gamedata/models/createcharacter/presets/full_presets/%s.qb", pPreset->GetLabel().GetText().c_str());
+
+			m_pCustomCreationNPC->GetVoxelCharacter()->UnloadCharacter();
+			m_pCustomCreationNPC->GetVoxelCharacter()->Reset();
+			m_pCustomCreationNPC->GetVoxelCharacter()->LoadVoxelCharacter("Human", presetModelFilename, ms3dFilename, animListFilename, facesFilename, characterFilename, characterBaseFolder, false);
+
+			// Set the default eyes and mouth variables, based on the preset character we just loaded
+			vec3 eyeOffset = m_pCustomCreationNPC->GetVoxelCharacter()->GetEyesOffset();
+			vec3 mouthOffset = m_pCustomCreationNPC->GetVoxelCharacter()->GetMouthOffset();
+			float eyeWidth = m_pCustomCreationNPC->GetVoxelCharacter()->GetEyeTextureWidth();
+			float eyeHeight = m_pCustomCreationNPC->GetVoxelCharacter()->GetEyeTextureHeight();
+			float mouthWidth = m_pCustomCreationNPC->GetVoxelCharacter()->GetMouthTextureWidth();
+			float mouthHeight = m_pCustomCreationNPC->GetVoxelCharacter()->GetMouthTextureHeight();
+
+			m_defaultEyeWidth = eyeWidth;
+			m_defaultMouthWidth = mouthWidth;
+			m_defaultEyeOffset = eyeOffset;
+			m_defaultMouthOffset = mouthOffset;
+
+			// Delete the preset buttons and unselect any body parts
+			DeletePresetButtons();
+
+			VoxGame::GetInstance()->GetNPCManager()->UpdateNamePickingSelection(-1);
+			VoxGame::GetInstance()->GetNPCManager()->UpdateHoverNamePickingSelection(-1);
+		}
+	}	
 }
 
 void CreateCharacter::_ArrowLeftPressed(void *pData)

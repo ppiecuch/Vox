@@ -90,6 +90,7 @@ public:
 	vec3 GetForwardVector();
 	vec3 GetRightVector();
 	vec3 GetUpVector();
+	vec3 GetTargetForward();
 
 	// Setup
 	void SetupEnemyForType();

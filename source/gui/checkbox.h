@@ -45,6 +45,8 @@ public:
 
 	void SetPressedOffset(int x, int y);
 
+	void SetLabelColour(Colour color);
+	void SetNormalLabelColour(Colour normal);
 	void SetHoverLabelColour(Colour hover);
 	void SetPressedLabelColour(Colour pressed);	
 
