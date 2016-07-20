@@ -82,7 +82,6 @@ void VoxWindow::Create()
 	int samples = 8;
 	glfwWindowHint(GLFW_SAMPLES, samples);
 	glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-	glGetIntegerv(GL_SAMPLES_ARB, &samples);
 
 	/* Initialize the joysticks object */
 	memset(m_joysticks, 0, sizeof(m_joysticks));
@@ -97,6 +96,8 @@ void VoxWindow::Create()
 
 	/* Initialize this window object */
 	InitializeWindowContext(m_pWindow);
+
+	glGetIntegerv(GL_SAMPLES_ARB, &samples);
 
 	if (m_pVoxSettings->m_fullscreen)
 	{

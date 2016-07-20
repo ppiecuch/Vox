@@ -220,7 +220,7 @@ private:
 	unsigned int *m_colour;
 
 	// Item list
-	mutex m_itemMutexLock;
+	tthread::mutex m_itemMutexLock;
 	ItemList m_vpItemList;
 
 	// Render mesh

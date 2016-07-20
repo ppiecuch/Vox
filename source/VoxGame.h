@@ -50,12 +50,12 @@
 #include "GameGUI/HUD.h"
 
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 typedef struct POINT {
   float x;
   float y;
 } POINT;
-#endif //__linux__
+#endif //__linux__ || __APPLE__
 
 // Game modes
 enum GameMode
@@ -385,7 +385,7 @@ private:
 	bool m_shouldRestorePreviousCameraMode;
 
 	// Interacting item
-	mutex m_interactItemMutex;
+	tthread::mutex m_interactItemMutex;
 	Item* m_pInteractItem;
 
 	// Window width and height

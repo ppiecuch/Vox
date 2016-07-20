@@ -14,9 +14,9 @@
 #include "utils/Interpolator.h"
 #include "utils/TimeManager.h"
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/time.h>
-#endif //__linux__
+#endif //__linux__ || __APPLE__
 
 
 // Updating

@@ -15,9 +15,9 @@
 #include "utils/Interpolator.h"
 #include <glm/detail/func_geometric.hpp>
 
-#ifdef __linux__
-#include <sys/time.h>
-#endif //__linux__
+#if defined(__linux__) || defined(__APPLE__)
+# include <sys/time.h>
+#endif //__linux__ || __APPLE__
 
 
 // Initialize the singleton instance

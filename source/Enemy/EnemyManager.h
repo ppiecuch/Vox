@@ -120,11 +120,11 @@ private:
 	int m_numRenderEnemies;
 
 	// Enemy lists
-	mutex m_enemyMutex;
+	tthread::mutex m_enemyMutex;
 	EnemyList m_vpEnemyList;
 	EnemyList m_vpEnemyCreateList;
 
 	// Enemy spawner
-	mutex m_enemySpawnerMutex;
+	tthread::mutex m_enemySpawnerMutex;
 	EnemySpawnerList m_vpEnemySpawnerList;
 };

@@ -37,6 +37,7 @@ using namespace std;
 #include "../tinythread/tinythread.h"
 using namespace tthread;
 
+
 #include "viewport.h"
 #include "frustum.h"
 #include "colour.h"
@@ -422,7 +423,7 @@ private:
 
 	// Vertex arrays, for storing static vertex data
 	vector<VertexArray *> m_vertexArrays;
-	mutex m_vertexArraysMutex;
+	tthread::mutex m_vertexArraysMutex;
 
 	// Frame buffers
 	vector<FrameBuffer*> m_vFrameBuffers;

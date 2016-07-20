@@ -1,8 +1,8 @@
-#version 150
+#version 120
  
-in vec4 out_color;
-in vec4 out_position;
-in vec4 out_normal;
+attribute vec4 out_color;
+attribute vec4 out_position;
+attribute vec4 out_normal;
 
 out vec4 outputColor;
 out vec4 outputPosition;
