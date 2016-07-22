@@ -421,7 +421,6 @@ void InstanceManager::Render()
 			delete newMatrices;
 		}
 
-
 		// Render the instances
 		m_pRenderer->BeginGLSLShader(m_instanceShader);
 

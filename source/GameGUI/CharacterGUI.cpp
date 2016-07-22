@@ -1559,7 +1559,7 @@ void CharacterGUI::CharacterItemReleased(CharacterSlotItem* pCharacterItem)
 	int y;
 	int width;
 	int height;
-	POINT lMouse = { VoxGame::GetInstance()->GetWindowCursorX(), (m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
+	POINT lMouse = { float(VoxGame::GetInstance()->GetWindowCursorX()), float(m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
 	bool unequip = false;
 
 	// Check if we have released on an inventory slot

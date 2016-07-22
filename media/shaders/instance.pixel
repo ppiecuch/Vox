@@ -1,8 +1,11 @@
 #version 120
- 
-attribute vec4 out_color;
-attribute vec4 out_position;
-attribute vec4 out_normal;
+
+#extension GL_ARB_draw_instanced : require
+#extension GL_EXT_gpu_shader4 : require
+
+varying vec4 out_color;
+varying vec4 out_position;
+varying vec4 out_normal;
 
 out vec4 outputColor;
 out vec4 outputPosition;
@@ -15,7 +18,7 @@ void main()
 	vec4 final_color = out_color;
 	final_color.a = out_color.a;
 
-	outputColor = final_color;
-	outputPosition = out_position;
-	outputNormal = vec4(packedNormal, 1.0);
+	outColor = final_color;
+	outPosition = out_position;
+	outNormal = vec4(packedNormal, 1.0);
 }

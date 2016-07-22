@@ -88,8 +88,8 @@ private:
 	int m_numRenderProjectiles;
 
 	// Enemy lists
-	mutex m_projectileMutex;
+	tthread::mutex m_projectileMutex;
 	ProjectileList m_vpProjectileList;
-	mutex m_projectileCreateMutex;
+	tthread::mutex m_projectileCreateMutex;
 	ProjectileList m_vpProjectileCreateList;
 };

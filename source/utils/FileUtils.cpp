@@ -11,9 +11,9 @@
 
 #include "FileUtils.h"
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
@@ -50,7 +50,7 @@ wchar_t *string2wchar_t(const string &str)
 
 vector<string> listFilesInDirectory(string directoryName)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	WIN32_FIND_DATA FindFileData;
 	std::wstring widestr = std::wstring(directoryName.begin(), directoryName.end());
 	const wchar_t * FileName = widestr.c_str();
@@ -76,7 +76,7 @@ vector<string> listFilesInDirectory(string directoryName)
 	}
 
 	return listFileNames;
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 	directoryName = directoryName.substr(0, directoryName.length() - 3);
 	vector<string> listFileNames;
 	DIR *dp;
@@ -95,5 +95,7 @@ vector<string> listFilesInDirectory(string directoryName)
 	closedir(dp);
 
 	return listFileNames;
+#else // __linux__ || __APPLE__
+	return vector<string>();
 #endif //_WIN32
 }

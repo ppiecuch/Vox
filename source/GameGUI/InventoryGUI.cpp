@@ -1066,7 +1066,7 @@ void InventoryGUI::InventoryItemReleased(InventorySlotItem* pInventoryItem)
 	int y;
 	int width;
 	int height;
-	POINT lMouse = { VoxGame::GetInstance()->GetWindowCursorX(), (m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
+	POINT lMouse = { float(VoxGame::GetInstance()->GetWindowCursorX()), float(m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
 	bool switched = false;
 	for(int i = 0; i < MAX_NUM_SLOTS_VERTICAL; i++)
 	{

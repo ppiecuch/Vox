@@ -19,13 +19,13 @@
 #include <iostream>
 using namespace std;
 
-#ifdef _WIN32
-#include <windows.h>
-#elif __linux__
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
+#if defined(_WIN32)
+# include <windows.h>
+#elif defined(__linux__) || defined(__APPLE__)
+# include <sys/types.h>
+# include <dirent.h>
+# include <errno.h>
+# define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
 #endif
 
 string wchar_t2string(const wchar_t *wchar);

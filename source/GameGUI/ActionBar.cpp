@@ -799,7 +799,7 @@ void ActionBar::ActionButtonReleased(ActionButtonItem* pActionButton)
 	int y;
 	int width;
 	int height;
-	POINT lMouse = { VoxGame::GetInstance()->GetWindowCursorX(), (m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
+	POINT lMouse = { float(VoxGame::GetInstance()->GetWindowCursorX()), float(m_windowHeight-VoxGame::GetInstance()->GetWindowCursorY()) };
 	bool switched = false;
 	bool sameSlot = false;
 	int switchSlot = -1;
